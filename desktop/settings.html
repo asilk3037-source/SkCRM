@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        padding: 20px;
+        color: #1f2430;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 8px 10px;
+        font-size: 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+      }
+      button {
+        margin-top: 16px;
+        width: 100%;
+        padding: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        color: white;
+        background: #0f172a;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      p.hint {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <label for="url">Endereço do servidor SkCRM</label>
+    <input id="url" type="text" placeholder="https://seu-crm.exemplo.com" />
+    <p class="hint">É o mesmo endereço que você acessa pelo navegador.</p>
+    <button id="save">Salvar e reconectar</button>
+    <script>
+      const input = document.getElementById('url')
+      window.settingsApi.get().then((config) => {
+        input.value = config.url
+      })
+      document.getElementById('save').addEventListener('click', () => {
+        window.settingsApi.save({ url: input.value.trim() })
+      })
+    </script>
+  </body>
+</html>
