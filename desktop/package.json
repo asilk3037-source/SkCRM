@@ -1,0 +1,31 @@
+{
+  "name": "skcrm-desktop",
+  "version": "1.0.0",
+  "description": "SkCRM para Windows — mesma aplicação do site, empacotada como programa desktop.",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^43.0.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.skcrm.desktop",
+    "productName": "SkCRM",
+    "files": [
+      "main.js",
+      "preload.js",
+      "config.json"
+    ],
+    "win": {
+      "target": ["nsis"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
