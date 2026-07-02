@@ -1,4 +1,4 @@
-import type { TicketPriority, TicketStatus } from '../types/database'
+import type { TicketCategory, TicketPriority, TicketStatus } from '../types/database'
 
 export const STATUS_LABEL: Record<TicketStatus, string> = {
   aberto: 'Aberto',
@@ -28,4 +28,12 @@ export const PRIORITY_COLOR: Record<TicketPriority, string> = {
   media: 'bg-blue-100 text-blue-700',
   alta: 'bg-orange-100 text-orange-700',
   urgente: 'bg-red-100 text-red-700',
+}
+
+export const CATEGORY_LABEL: Record<TicketCategory, string> = {
+  suporte: 'Suporte',
+  erro_sistema: 'Erro de sistema',
+  melhoria: 'Melhoria',
+  duvida: 'Dúvida',
+  outro: 'Outro',
 }
