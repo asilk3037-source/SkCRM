@@ -74,7 +74,8 @@ npm run build:win # gera o instalador .exe (electron-builder)
 ## Estado atual / próximos passos
 
 Já funciona: login/cadastro, contatos, empresas, negociações (kanban por
-etapa do funil) e tarefas — tudo com CRUD completo e isolado por usuário.
+etapa do funil), chamados (com status, prioridade e histórico de
+comentários) e tarefas — tudo com CRUD completo e isolado por usuário.
 
 Ideias para evoluir:
 - Compartilhamento de dados entre uma equipe (hoje é só por usuário)
