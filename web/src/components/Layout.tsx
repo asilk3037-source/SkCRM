@@ -6,6 +6,7 @@ const links = [
   { to: '/contatos', label: 'Contatos' },
   { to: '/empresas', label: 'Empresas' },
   { to: '/negociacoes', label: 'Negociações' },
+  { to: '/chamados', label: 'Chamados' },
   { to: '/tarefas', label: 'Tarefas' },
 ]
 

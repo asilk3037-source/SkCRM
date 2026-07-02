@@ -59,3 +59,28 @@ export interface Task {
   created_at: string
   updated_at: string
 }
+
+export type TicketStatus = 'aberto' | 'em_andamento' | 'aguardando_cliente' | 'resolvido' | 'fechado'
+export type TicketPriority = 'baixa' | 'media' | 'alta' | 'urgente'
+
+export interface Ticket {
+  id: string
+  owner_id: string
+  contact_id: string | null
+  company_id: string | null
+  subject: string
+  description: string | null
+  status: TicketStatus
+  priority: TicketPriority
+  created_at: string
+  updated_at: string
+  resolved_at: string | null
+}
+
+export interface TicketComment {
+  id: string
+  owner_id: string
+  ticket_id: string
+  body: string
+  created_at: string
+}

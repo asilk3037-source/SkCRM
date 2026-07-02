@@ -9,6 +9,8 @@ import { Contacts } from './pages/Contacts'
 import { Companies } from './pages/Companies'
 import { Deals } from './pages/Deals'
 import { Tasks } from './pages/Tasks'
+import { Tickets } from './pages/Tickets'
+import { TicketDetail } from './pages/TicketDetail'
 
 function App() {
   return (
@@ -28,6 +30,8 @@ function App() {
           <Route path="contatos" element={<Contacts />} />
           <Route path="empresas" element={<Companies />} />
           <Route path="negociacoes" element={<Deals />} />
+          <Route path="chamados" element={<Tickets />} />
+          <Route path="chamados/:id" element={<TicketDetail />} />
           <Route path="tarefas" element={<Tasks />} />
         </Route>
       </Routes>
