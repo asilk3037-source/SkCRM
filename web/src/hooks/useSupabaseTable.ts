@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { db } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
+import { useOrg } from '../context/OrgContext'
 
 /**
  * Generic CRUD hook for `skcrm` tables that follow the owner_id convention.
@@ -9,6 +10,7 @@ import { useAuth } from '../context/AuthContext'
  */
 export function useSupabaseTable<T extends { id: string }>(table: string, orderBy = 'created_at') {
   const { user } = useAuth()
+  const { org } = useOrg()
   const [data, setData] = useState<T[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -40,16 +42,17 @@ export function useSupabaseTable<T extends { id: string }>(table: string, orderB
   const create = useCallback(
     async (values: Partial<T>) => {
       if (!user) throw new Error('Not authenticated')
+      if (!org) throw new Error('Nenhuma organização ativa')
       const { data: row, error: createError } = await db
         .from(table)
-        .insert({ ...values, owner_id: user.id } as never)
+        .insert({ ...values, owner_id: user.id, org_id: org.id } as never)
         .select()
         .single()
       if (createError) throw createError
       await refresh()
       return row as T
     },
-    [table, user, refresh],
+    [table, user, org, refresh],
   )
 
   const update = useCallback(

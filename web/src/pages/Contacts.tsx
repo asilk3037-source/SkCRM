@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
+import { AttachmentsModal } from '../components/AttachmentsModal'
 import type { Contact, Company } from '../types/database'
 
 const emptyForm = { name: '', email: '', phone: '', job_title: '', company_id: '', notes: '' }
@@ -10,6 +11,7 @@ export function Contacts() {
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [attachFor, setAttachFor] = useState<Contact | null>(null)
 
   const companyName = (id: string | null) => companies.find((c) => c.id === id)?.name ?? '—'
 
@@ -49,7 +51,7 @@ export function Contacts() {
         <h1 className="text-2xl font-semibold text-slate-900">Contatos</h1>
         <button
           onClick={() => (showForm ? resetForm() : setShowForm(true))}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
         >
           {showForm ? 'Cancelar' : 'Novo contato'}
         </button>
@@ -101,7 +103,7 @@ export function Contacts() {
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
             className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
-          <button type="submit" className="col-span-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+          <button type="submit" className="col-span-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">
             {editingId ? 'Salvar alterações' : 'Adicionar'}
           </button>
         </form>
@@ -131,6 +133,9 @@ export function Contacts() {
                   <td className="px-4 py-3 text-slate-600">{contact.email}</td>
                   <td className="px-4 py-3 text-slate-600">{contact.phone}</td>
                   <td className="px-4 py-3 text-right">
+                    <button onClick={() => setAttachFor(contact)} className="mr-3 text-slate-500 hover:text-slate-900">
+                      📎 Anexos
+                    </button>
                     <button onClick={() => startEdit(contact)} className="mr-3 text-slate-500 hover:text-slate-900">
                       Editar
                     </button>
@@ -143,6 +148,14 @@ export function Contacts() {
             </tbody>
           </table>
         </div>
+      )}
+      {attachFor && (
+        <AttachmentsModal
+          kind="contact"
+          recordId={attachFor.id}
+          title={attachFor.name}
+          onClose={() => setAttachFor(null)}
+        />
       )}
     </div>
   )

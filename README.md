@@ -74,7 +74,15 @@ npm run build:win # gera o instalador .exe (electron-builder)
 ## Estado atual / próximos passos
 
 Já funciona: login/cadastro, contatos, empresas, negociações (kanban por
-etapa do funil) e tarefas — tudo com CRUD completo e isolado por usuário.
+etapa do funil), chamados e tarefas — tudo com CRUD completo e isolado
+por usuário.
+
+O módulo de chamados segue o modelo do SGN (Netview): caixas de gestão
+por "com quem está a próxima ação", número curto (#1001...), tipo,
+setor/responsável com encaminhamento, fluxo de validação antes de
+concluir, interações externas (cliente) separadas das internas
+(anotações) e anexos de até 40 MB por arquivo (bucket privado
+`skcrm-attachments` no Supabase Storage).
 
 Ideias para evoluir:
 - Compartilhamento de dados entre uma equipe (hoje é só por usuário)

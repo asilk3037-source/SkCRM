@@ -30,7 +30,7 @@ export function Tasks() {
         <h1 className="text-2xl font-semibold text-slate-900">Tarefas</h1>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
         >
           {showForm ? 'Cancelar' : 'Nova tarefa'}
         </button>
@@ -57,7 +57,7 @@ export function Tasks() {
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
-          <button type="submit" className="col-span-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+          <button type="submit" className="col-span-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">
             Adicionar
           </button>
         </form>

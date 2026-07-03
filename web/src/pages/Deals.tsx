@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { useDeals, usePipelineStages } from '../hooks/useDeals'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
-import type { Contact, Company } from '../types/database'
+import { AttachmentsModal } from '../components/AttachmentsModal'
+import type { Contact, Company, Deal } from '../types/database'
 
 const emptyForm = { title: '', value: '', contact_id: '', company_id: '', stage_id: '', expected_close_date: '' }
 
@@ -12,6 +13,7 @@ export function Deals() {
   const { data: companies } = useSupabaseTable<Company>('companies', 'name')
   const [form, setForm] = useState(emptyForm)
   const [showForm, setShowForm] = useState(false)
+  const [attachFor, setAttachFor] = useState<Deal | null>(null)
 
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name
   const companyName = (id: string | null) => companies.find((c) => c.id === id)?.name
@@ -37,7 +39,7 @@ export function Deals() {
         <h1 className="text-2xl font-semibold text-slate-900">Negociações</h1>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
         >
           {showForm ? 'Cancelar' : 'Nova negociação'}
         </button>
@@ -102,7 +104,7 @@ export function Deals() {
               </option>
             ))}
           </select>
-          <button type="submit" className="col-span-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+          <button type="submit" className="col-span-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">
             Adicionar
           </button>
         </form>
@@ -146,6 +148,9 @@ export function Deals() {
                         ))}
                       </select>
                       <div className="mt-2 flex gap-2 text-xs">
+                        <button onClick={() => setAttachFor(deal)} className="text-slate-500 hover:text-slate-900">
+                          📎
+                        </button>
                         <button onClick={() => update(deal.id, { status: 'won' })} className="text-emerald-600 hover:underline">
                           Ganhou
                         </button>
@@ -163,6 +168,14 @@ export function Deals() {
             )
           })}
         </div>
+      )}
+      {attachFor && (
+        <AttachmentsModal
+          kind="deal"
+          recordId={attachFor.id}
+          title={attachFor.title}
+          onClose={() => setAttachFor(null)}
+        />
       )}
     </div>
   )
