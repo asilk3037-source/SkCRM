@@ -101,3 +101,25 @@ export interface TicketAttachment {
   size_bytes: number
   created_at: string
 }
+
+export type TicketEventType = 'criado' | 'status' | 'encaminhado' | 'prioridade'
+
+export interface TicketEvent {
+  id: string
+  owner_id: string
+  ticket_id: string
+  event: TicketEventType
+  detail: string | null
+  created_at: string
+}
+
+export interface RecordAttachment {
+  id: string
+  owner_id: string
+  contact_id: string | null
+  deal_id: string | null
+  file_name: string
+  storage_path: string
+  size_bytes: number
+  created_at: string
+}

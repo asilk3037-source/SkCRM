@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useTickets } from '../hooks/useTickets'
 import { useTicketComments } from '../hooks/useTicketComments'
 import { useTicketAttachments } from '../hooks/useTicketAttachments'
+import { useTicketEvents } from '../hooks/useTicketEvents'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import { useAuth } from '../context/AuthContext'
 import type {
@@ -23,6 +24,24 @@ import {
   SECTOR_LABEL,
   formatBytes,
 } from '../lib/ticketMeta'
+
+/** Turns "aberto -> resolvido" into "Aberto → Resolvido" using the label maps. */
+function formatEventDetail(detail: string | null) {
+  if (!detail) return ''
+  const labels: Record<string, string> = { ...STATUS_LABEL, ...PRIORITY_LABEL }
+  return detail
+    .split(' -> ')
+    .map((part) => labels[part] ?? part)
+    .join(' → ')
+}
+
+/** Turns "suporte / Aline" into "Suporte / Aline". */
+function formatForward(detail: string | null) {
+  if (!detail) return ''
+  const [sector, ...rest] = detail.split(' / ')
+  const label = (SECTOR_LABEL as Record<string, string>)[sector] ?? sector
+  return [label, ...rest].join(' / ')
+}
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
@@ -212,6 +231,7 @@ export function TicketDetail() {
   const ticket = tickets.find((t) => t.id === id)
   const { comments, loading: commentsLoading, addComment } = useTicketComments(id ?? '')
   const { attachments, uploading, upload, download, remove: removeAttachment } = useTicketAttachments(id ?? '')
+  const { events } = useTicketEvents(id ?? '', ticket?.updated_at)
 
   if (loading) return <p className="text-sm text-slate-500">Carregando...</p>
   if (!ticket) return <Navigate to="/chamados" replace />
@@ -454,6 +474,46 @@ export function TicketDetail() {
           <p className="text-xs font-semibold uppercase text-slate-400">Descrição</p>
           <p className="mt-0.5 whitespace-pre-wrap text-sm text-slate-700">{ticket.description || 'Sem descrição.'}</p>
         </div>
+      </div>
+
+      {/* Timeline — SGN's ticket history at a glance */}
+      <div className="mb-6 rounded-lg border border-slate-200 bg-white">
+        <SectionHeader>Timeline</SectionHeader>
+        {events.length === 0 ? (
+          <p className="px-4 py-3 text-sm text-slate-400">Sem eventos registrados.</p>
+        ) : (
+          <ol className="px-5 py-4">
+            {events.map((ev, i) => (
+              <li key={ev.id} className="relative flex gap-3 pb-4 last:pb-0">
+                {i < events.length - 1 && (
+                  <span className="absolute left-[5px] top-4 h-full w-px bg-slate-200" aria-hidden />
+                )}
+                <span
+                  className={`relative mt-1.5 h-[11px] w-[11px] flex-shrink-0 rounded-full ${
+                    ev.event === 'criado'
+                      ? 'bg-orange-500'
+                      : ev.event === 'encaminhado'
+                        ? 'bg-blue-500'
+                        : ev.event === 'prioridade'
+                          ? 'bg-amber-500'
+                          : 'bg-emerald-500'
+                  }`}
+                />
+                <div className="min-w-0 text-sm">
+                  <span className="font-medium text-slate-800">
+                    {ev.event === 'criado' && 'Chamado aberto'}
+                    {ev.event === 'status' && `Status: ${formatEventDetail(ev.detail)}`}
+                    {ev.event === 'encaminhado' && `Encaminhado: ${formatForward(ev.detail)}`}
+                    {ev.event === 'prioridade' && `Prioridade: ${formatEventDetail(ev.detail)}`}
+                  </span>
+                  <span className="ml-2 text-xs text-slate-400">
+                    {new Date(ev.created_at).toLocaleString('pt-BR')}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
       </div>
 
       {/* Anexos */}

@@ -2,8 +2,8 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTickets } from '../hooks/useTickets'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
-import type { Contact, Company, Ticket, TicketStatus } from '../types/database'
-import { STATUS_LABEL, STATUS_COLOR, PRIORITY_LABEL, PRIORITY_COLOR, CATEGORY_LABEL } from '../lib/ticketMeta'
+import type { Contact, Company, Ticket, TicketCategory, TicketSector, TicketStatus } from '../types/database'
+import { STATUS_LABEL, STATUS_COLOR, PRIORITY_LABEL, PRIORITY_COLOR, CATEGORY_LABEL, SECTOR_LABEL } from '../lib/ticketMeta'
 
 const emptyForm = {
   subject: '',
@@ -47,6 +47,10 @@ export function Tickets() {
   // "Outros chamados" filters
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<TicketStatus | 'todos'>('todos')
+  const [categoryFilter, setCategoryFilter] = useState<TicketCategory | 'todos'>('todos')
+  const [sectorFilter, setSectorFilter] = useState<TicketSector | 'todos'>('todos')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name
   const companyName = (id: string | null) => companies.find((c) => c.id === id)?.name
@@ -57,8 +61,30 @@ export function Tickets() {
     [tickets],
   )
 
+  const hasFilters =
+    search.trim() !== '' ||
+    statusFilter !== 'todos' ||
+    categoryFilter !== 'todos' ||
+    sectorFilter !== 'todos' ||
+    dateFrom !== '' ||
+    dateTo !== ''
+
+  function clearFilters() {
+    setSearch('')
+    setStatusFilter('todos')
+    setCategoryFilter('todos')
+    setSectorFilter('todos')
+    setDateFrom('')
+    setDateTo('')
+  }
+
   const others = sorted.filter((t) => {
     if (statusFilter !== 'todos' && t.status !== statusFilter) return false
+    if (categoryFilter !== 'todos' && t.category !== categoryFilter) return false
+    if (sectorFilter !== 'todos' && t.sector !== sectorFilter) return false
+    const opened = t.created_at.slice(0, 10)
+    if (dateFrom && opened < dateFrom) return false
+    if (dateTo && opened > dateTo) return false
     if (!search.trim()) return true
     const q = search.trim().toLowerCase()
     return (
@@ -211,15 +237,22 @@ export function Tickets() {
           </div>
 
           <div className="mt-8 rounded-lg border border-slate-200 bg-white">
-            <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-4 py-3">
-              <h2 className="text-sm font-semibold text-slate-700">Outros chamados ({others.length})</h2>
-              <div className="ml-auto flex items-center gap-2">
+            <div className="border-b border-slate-200 px-4 py-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-sm font-semibold text-slate-700">Outros chamados ({others.length})</h2>
+                {hasFilters && (
+                  <button onClick={clearFilters} className="text-xs font-medium text-orange-600 hover:underline">
+                    Limpar filtros
+                  </button>
+                )}
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar por nº, assunto ou solicitante..."
-                  className="w-64 rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+                  className="ml-auto w-64 rounded-md border border-slate-300 px-3 py-1.5 text-sm"
                 />
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as TicketStatus | 'todos')}
@@ -232,6 +265,46 @@ export function Tickets() {
                     </option>
                   ))}
                 </select>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value as TicketCategory | 'todos')}
+                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+                >
+                  <option value="todos">Todos os tipos</option>
+                  {Object.entries(CATEGORY_LABEL).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={sectorFilter}
+                  onChange={(e) => setSectorFilter(e.target.value as TicketSector | 'todos')}
+                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+                >
+                  <option value="todos">Todos os setores</option>
+                  {Object.entries(SECTOR_LABEL).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <label className="flex items-center gap-1.5 text-xs text-slate-500">
+                  Abertura de
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-700"
+                  />
+                  até
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-700"
+                  />
+                </label>
               </div>
             </div>
             {others.length === 0 ? (

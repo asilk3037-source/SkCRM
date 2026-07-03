@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { useDeals, usePipelineStages } from '../hooks/useDeals'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
-import type { Contact, Company } from '../types/database'
+import { AttachmentsModal } from '../components/AttachmentsModal'
+import type { Contact, Company, Deal } from '../types/database'
 
 const emptyForm = { title: '', value: '', contact_id: '', company_id: '', stage_id: '', expected_close_date: '' }
 
@@ -12,6 +13,7 @@ export function Deals() {
   const { data: companies } = useSupabaseTable<Company>('companies', 'name')
   const [form, setForm] = useState(emptyForm)
   const [showForm, setShowForm] = useState(false)
+  const [attachFor, setAttachFor] = useState<Deal | null>(null)
 
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name
   const companyName = (id: string | null) => companies.find((c) => c.id === id)?.name
@@ -146,6 +148,9 @@ export function Deals() {
                         ))}
                       </select>
                       <div className="mt-2 flex gap-2 text-xs">
+                        <button onClick={() => setAttachFor(deal)} className="text-slate-500 hover:text-slate-900">
+                          📎
+                        </button>
                         <button onClick={() => update(deal.id, { status: 'won' })} className="text-emerald-600 hover:underline">
                           Ganhou
                         </button>
@@ -163,6 +168,14 @@ export function Deals() {
             )
           })}
         </div>
+      )}
+      {attachFor && (
+        <AttachmentsModal
+          kind="deal"
+          recordId={attachFor.id}
+          title={attachFor.title}
+          onClose={() => setAttachFor(null)}
+        />
       )}
     </div>
   )

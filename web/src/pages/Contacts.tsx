@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
+import { AttachmentsModal } from '../components/AttachmentsModal'
 import type { Contact, Company } from '../types/database'
 
 const emptyForm = { name: '', email: '', phone: '', job_title: '', company_id: '', notes: '' }
@@ -10,6 +11,7 @@ export function Contacts() {
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [attachFor, setAttachFor] = useState<Contact | null>(null)
 
   const companyName = (id: string | null) => companies.find((c) => c.id === id)?.name ?? '—'
 
@@ -131,6 +133,9 @@ export function Contacts() {
                   <td className="px-4 py-3 text-slate-600">{contact.email}</td>
                   <td className="px-4 py-3 text-slate-600">{contact.phone}</td>
                   <td className="px-4 py-3 text-right">
+                    <button onClick={() => setAttachFor(contact)} className="mr-3 text-slate-500 hover:text-slate-900">
+                      📎 Anexos
+                    </button>
                     <button onClick={() => startEdit(contact)} className="mr-3 text-slate-500 hover:text-slate-900">
                       Editar
                     </button>
@@ -143,6 +148,14 @@ export function Contacts() {
             </tbody>
           </table>
         </div>
+      )}
+      {attachFor && (
+        <AttachmentsModal
+          kind="contact"
+          recordId={attachFor.id}
+          title={attachFor.name}
+          onClose={() => setAttachFor(null)}
+        />
       )}
     </div>
   )
