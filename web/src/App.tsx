@@ -15,6 +15,8 @@ import { TicketDetail } from './pages/TicketDetail'
 import { Team } from './pages/Team'
 import { Portal } from './pages/Portal'
 import { PortalTicket } from './pages/PortalTicket'
+import { Reports } from './pages/Reports'
+import { TicketsTV } from './pages/TicketsTV'
 
 function App() {
   return (
@@ -39,6 +41,16 @@ function App() {
           }
         />
         <Route
+          path="/tv"
+          element={
+            <ProtectedRoute>
+              <OrgProvider>
+                <TicketsTV />
+              </OrgProvider>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/"
           element={
             <ProtectedRoute>
@@ -55,6 +67,7 @@ function App() {
           <Route path="chamados" element={<Tickets />} />
           <Route path="chamados/:id" element={<TicketDetail />} />
           <Route path="tarefas" element={<Tasks />} />
+          <Route path="relatorios" element={<Reports />} />
           <Route path="equipe" element={<Team />} />
         </Route>
       </Routes>

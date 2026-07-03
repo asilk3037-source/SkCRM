@@ -13,7 +13,9 @@ tarefas · chamados com nº curto (#1001...) · caixas de gestão ·
 encaminhamento por setor · interações externas/internas · anexos até 40 MB ·
 fluxo de validação · painel de notificações · visual SGN · timeline do
 chamado · filtros avançados · organizações/equipe com papéis admin×atendente
-· portal do cliente (login próprio, abrir/responder/validar chamado).
+· portal do cliente (login próprio, abrir/responder/validar chamado) ·
+relatórios (funil, tempo de resolução, produção por pessoa) · TV Chamados ·
+importação de contatos via CSV · PWA instalável.
 
 ## Pendências imediatas
 
@@ -58,11 +60,11 @@ próprios chamados.
 - [ ] E-mail que vira chamado automaticamente *(fica pra depois — canal alternativo do SGN, baixa prioridade)*
 
 ### Fase 4 — Crescimento e relatórios
-- Relatórios: funil, tempo de resolução, produção por pessoa
-- TV Chamados (telão de acompanhamento)
-- Importação de contatos via CSV
-- Integração WhatsApp
-- PWA instalável no celular
+- [x] Relatórios: funil de vendas, tempo de resolução, produção por pessoa, chamados ativos por prioridade
+- [x] TV Chamados (telão de acompanhamento, atualiza sozinho a cada 30s)
+- [x] Importação de contatos via CSV (com preview antes de confirmar)
+- [x] PWA instalável no celular (ícone, tela cheia, abre offline a última tela vista)
+- [ ] Integração WhatsApp *(precisa de decisão: WhatsApp Business API tem custo e homologação — ver PENDENCIAS.md)*
 
 ## Ordem sugerida
 

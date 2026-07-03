@@ -88,5 +88,15 @@ arquivo (bucket privado `skcrm-attachments` no Supabase Storage).
 própria conta e acompanhar, abrir e validar os próprios chamados — sem
 acesso ao resto do CRM.
 
+**Relatórios e acompanhamento** (`/relatorios`, `/tv`): funil de vendas,
+tempo médio de resolução de chamados, produção por pessoa e um telão
+("TV Chamados") pra deixar aberto na sala, atualizando sozinho a cada
+30 segundos.
+
+**Importação e instalação**: contatos em massa via CSV (`/contatos` →
+Importar CSV, reconhece colunas em português ou inglês) e o site é uma
+PWA instalável — "Adicionar à tela inicial" no celular funciona como um
+app nativo, com ícone próprio.
+
 Veja [`docs/ROADMAP.md`](docs/ROADMAP.md) para o plano completo por fases e
 [`docs/PENDENCIAS.md`](docs/PENDENCIAS.md) para o que depende de você.
