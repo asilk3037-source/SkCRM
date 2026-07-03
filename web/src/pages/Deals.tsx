@@ -37,7 +37,7 @@ export function Deals() {
         <h1 className="text-2xl font-semibold text-slate-900">Negociações</h1>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
         >
           {showForm ? 'Cancelar' : 'Nova negociação'}
         </button>
@@ -102,7 +102,7 @@ export function Deals() {
               </option>
             ))}
           </select>
-          <button type="submit" className="col-span-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+          <button type="submit" className="col-span-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">
             Adicionar
           </button>
         </form>

@@ -90,7 +90,7 @@ export function Tickets() {
         <h1 className="text-2xl font-semibold text-slate-900">Chamados</h1>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
         >
           {showForm ? 'Cancelar' : '+ Novo chamado'}
         </button>
@@ -161,7 +161,7 @@ export function Tickets() {
             rows={3}
             className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
-          <button type="submit" className="col-span-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+          <button type="submit" className="col-span-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">
             Abrir chamado
           </button>
         </form>
@@ -176,11 +176,11 @@ export function Tickets() {
               const items = sorted.filter(box.match)
               return (
                 <div key={box.key} className="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
-                  <div className="border-b border-slate-200 bg-slate-900 px-4 py-2.5">
+                  <div className="border-b border-orange-700 bg-orange-600 px-4 py-2.5">
                     <p className="text-sm font-semibold text-white">
                       {box.title} <span className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-xs">{items.length}</span>
                     </p>
-                    <p className="mt-0.5 text-xs text-slate-300">{box.hint}</p>
+                    <p className="mt-0.5 text-xs text-orange-100">{box.hint}</p>
                   </div>
                   {items.length === 0 ? (
                     <p className="flex flex-1 items-center justify-center px-4 py-8 text-sm text-slate-400">Sem chamados</p>
@@ -190,7 +190,7 @@ export function Tickets() {
                         <li key={t.id}>
                           <Link to={`/chamados/${t.id}`} className="block px-4 py-2.5 hover:bg-slate-50">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-semibold text-blue-700">#{t.number}</span>
+                              <span className="text-xs font-semibold text-orange-600">#{t.number}</span>
                               <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${PRIORITY_COLOR[t.priority]}`}>
                                 {PRIORITY_LABEL[t.priority]}
                               </span>
@@ -255,7 +255,7 @@ export function Tickets() {
                     {others.map((t) => (
                       <tr key={t.id} className="hover:bg-slate-50">
                         <td className="px-4 py-3">
-                          <Link to={`/chamados/${t.id}`} className="font-semibold text-blue-700 hover:underline">
+                          <Link to={`/chamados/${t.id}`} className="font-semibold text-orange-600 hover:underline">
                             #{t.number}
                           </Link>
                         </td>

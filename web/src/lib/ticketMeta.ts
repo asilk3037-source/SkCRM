@@ -1,4 +1,4 @@
-import type { TicketCategory, TicketPriority, TicketStatus } from '../types/database'
+import type { TicketCategory, TicketPriority, TicketSector, TicketStatus } from '../types/database'
 
 export const STATUS_LABEL: Record<TicketStatus, string> = {
   aberto: 'Aberto',
@@ -36,4 +36,18 @@ export const CATEGORY_LABEL: Record<TicketCategory, string> = {
   melhoria: 'Melhoria',
   duvida: 'Dúvida',
   outro: 'Outro',
+}
+
+export const SECTOR_LABEL: Record<TicketSector, string> = {
+  suporte: 'Suporte',
+  comercial: 'Comercial',
+  desenvolvimento: 'Desenvolvimento',
+  financeiro: 'Financeiro',
+  administrativo: 'Administrativo',
+}
+
+export function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }

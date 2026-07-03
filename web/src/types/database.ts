@@ -63,6 +63,7 @@ export interface Task {
 export type TicketStatus = 'aberto' | 'em_andamento' | 'aguardando_cliente' | 'resolvido' | 'fechado'
 export type TicketPriority = 'baixa' | 'media' | 'alta' | 'urgente'
 export type TicketCategory = 'suporte' | 'erro_sistema' | 'melhoria' | 'duvida' | 'outro'
+export type TicketSector = 'suporte' | 'comercial' | 'desenvolvimento' | 'financeiro' | 'administrativo'
 
 export interface Ticket {
   id: string
@@ -75,6 +76,8 @@ export interface Ticket {
   status: TicketStatus
   priority: TicketPriority
   category: TicketCategory
+  sector: TicketSector
+  assignee: string | null
   created_at: string
   updated_at: string
   resolved_at: string | null
@@ -85,5 +88,16 @@ export interface TicketComment {
   owner_id: string
   ticket_id: string
   body: string
+  internal: boolean
+  created_at: string
+}
+
+export interface TicketAttachment {
+  id: string
+  owner_id: string
+  ticket_id: string
+  file_name: string
+  storage_path: string
+  size_bytes: number
   created_at: string
 }

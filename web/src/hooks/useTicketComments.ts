@@ -29,12 +29,13 @@ export function useTicketComments(ticketId: string) {
   }, [refresh])
 
   const addComment = useCallback(
-    async (body: string) => {
+    async (body: string, internal = false) => {
       if (!user) throw new Error('Not authenticated')
       const { error } = await db.from('ticket_comments').insert({
         ticket_id: ticketId,
         owner_id: user.id,
         body,
+        internal,
       } as never)
       if (error) throw error
       await refresh()

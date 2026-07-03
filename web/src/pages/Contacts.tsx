@@ -49,7 +49,7 @@ export function Contacts() {
         <h1 className="text-2xl font-semibold text-slate-900">Contatos</h1>
         <button
           onClick={() => (showForm ? resetForm() : setShowForm(true))}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
         >
           {showForm ? 'Cancelar' : 'Novo contato'}
         </button>
@@ -101,7 +101,7 @@ export function Contacts() {
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
             className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
-          <button type="submit" className="col-span-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+          <button type="submit" className="col-span-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">
             {editingId ? 'Salvar alterações' : 'Adicionar'}
           </button>
         </form>
