@@ -13,6 +13,8 @@ import { Tasks } from './pages/Tasks'
 import { Tickets } from './pages/Tickets'
 import { TicketDetail } from './pages/TicketDetail'
 import { Team } from './pages/Team'
+import { Portal } from './pages/Portal'
+import { PortalTicket } from './pages/PortalTicket'
 
 function App() {
   return (
@@ -20,6 +22,22 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/cadastro" element={<Signup />} />
+        <Route
+          path="/portal"
+          element={
+            <ProtectedRoute>
+              <Portal />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/:id"
+          element={
+            <ProtectedRoute>
+              <PortalTicket />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/"
           element={

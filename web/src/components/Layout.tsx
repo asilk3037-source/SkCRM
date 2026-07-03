@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Navigate, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useOrg } from '../context/OrgContext'
 
@@ -26,6 +26,11 @@ export function Layout() {
   const { org, loading: orgLoading } = useOrg()
   const location = useLocation()
   const crumb = BREADCRUMB.find((b) => location.pathname.startsWith(b.prefix))?.label ?? 'Painel'
+
+  // Sem organização = cliente do portal (contato cadastrado por alguma equipe)
+  if (!orgLoading && !org) {
+    return <Navigate to="/portal" replace />
+  }
 
   return (
     <div className="flex h-screen bg-slate-100">

@@ -28,7 +28,9 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
 - [ ] **Provedor de e-mail para notificações** (Fase 1, único item restante)
   — sugestão: criar conta gratuita no [Resend](https://resend.com) e me
   passar a chave da API. Com ela eu configuro o envio de e-mail ao
-  abrir/atualizar chamado (como o SGN faz).
+  abrir/atualizar chamado (como o SGN faz). Também serviria pro convite de
+  equipe (Fase 2) e pro convite de cliente pro portal (Fase 3) avisarem
+  por e-mail em vez de só ficarem registrados no sistema.
 
 ## Segurança / higiene
 
@@ -53,6 +55,10 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
 - **Banco compartilhado com o projeto "Tarefas"** — considerar projeto
   Supabase dedicado quando o CRM virar produção séria (migração simples
   enquanto há pouco dado).
+- **Portal do cliente (Fase 3) não convida automaticamente** — hoje, um
+  contato só vira cliente do portal se o e-mail dele já existir em
+  `contacts` *antes* de criar a conta. Cadastrar um contato → avisar a
+  pessoa (por fora) que já pode criar conta no SkCRM com esse e-mail.
 
 ## Concluído (histórico)
 
@@ -60,3 +66,6 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
   contatos/negociações *(03/07/2026)*
 - [x] Fase 2 — organizações/equipe, convites, papéis admin×atendente,
   responsável real nos chamados, página Equipe *(03/07/2026)*
+- [x] Fase 3 — portal do cliente: login próprio, caixas de gestão do lado
+  do cliente, abrir chamado, responder e validar/retornar conclusão
+  *(03/07/2026)*

@@ -11,7 +11,9 @@ o modelo do SGN da Netview.
 Pronto: login/cadastro · contatos · empresas · negociações (kanban) ·
 tarefas · chamados com nº curto (#1001...) · caixas de gestão ·
 encaminhamento por setor · interações externas/internas · anexos até 40 MB ·
-fluxo de validação · painel de notificações · visual SGN.
+fluxo de validação · painel de notificações · visual SGN · timeline do
+chamado · filtros avançados · organizações/equipe com papéis admin×atendente
+· portal do cliente (login próprio, abrir/responder/validar chamado).
 
 ## Pendências imediatas
 
@@ -31,28 +33,29 @@ fluxo de validação · painel de notificações · visual SGN.
 
 ## Roteiro por fases
 
-### Fase 1 — Completar o dia a dia dos chamados
+### Fase 1 — Completar o dia a dia dos chamados ✅
 Objetivo: operar 100% do suporte dentro do SkCRM.
-- Timeline do chamado (linha do tempo de mudanças de status, como no SGN)
-- Notificação por e-mail ao abrir/atualizar chamado
-- Filtros avançados em "Outros chamados": intervalo de datas, tipo, setor
-- Anexos também em contatos e negociações
+- [x] Timeline do chamado (linha do tempo de mudanças de status, como no SGN)
+- [ ] Notificação por e-mail ao abrir/atualizar chamado *(depende de provedor de e-mail — ver PENDENCIAS.md)*
+- [x] Filtros avançados em "Outros chamados": intervalo de datas, tipo, setor
+- [x] Anexos também em contatos e negociações
 
-### Fase 2 — Equipe (multiusuário)
+### Fase 2 — Equipe (multiusuário) ✅
 Objetivo: mais de uma pessoa atendendo no mesmo CRM. Mudança estrutural
 mais importante do projeto — melhor fazer cedo.
-- Organizações: dados compartilhados por equipe (migrar RLS de `owner_id`
+- [x] Organizações: dados compartilhados por equipe (migrar RLS de `owner_id`
   para organização)
-- Encaminhar para uma pessoa real (hoje "responsável" é texto livre)
-- "Chamados sob sua responsabilidade" por pessoa
-- Permissões: administrador × atendente
+- [x] Encaminhar para uma pessoa real (hoje "responsável" é texto livre)
+- [x] "Chamados sob sua responsabilidade" por pessoa
+- [x] Permissões: administrador × atendente
 
-### Fase 3 — Portal do cliente
+### Fase 3 — Portal do cliente ✅
 Objetivo: o lado que o guia do SGN mostra — o cliente abre e acompanha os
 próprios chamados.
-- Login do cliente com as caixas dele (responder, aguardando validação...)
-- Cliente abre chamado, anexa evidências e valida a conclusão
-- E-mail que vira chamado automaticamente
+- [x] Login do cliente com as caixas dele (responder, aguardando validação...)
+- [x] Cliente abre chamado e valida a conclusão
+- [ ] Anexos do lado do cliente *(infra já existe, falta o botão no portal)*
+- [ ] E-mail que vira chamado automaticamente *(fica pra depois — canal alternativo do SGN, baixa prioridade)*
 
 ### Fase 4 — Crescimento e relatórios
 - Relatórios: funil, tempo de resolução, produção por pessoa
