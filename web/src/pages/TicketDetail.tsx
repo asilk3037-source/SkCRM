@@ -6,6 +6,7 @@ import { useTicketAttachments } from '../hooks/useTicketAttachments'
 import { useTicketEvents } from '../hooks/useTicketEvents'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import { useAuth } from '../context/AuthContext'
+import { useOrg } from '../context/OrgContext'
 import type {
   Contact,
   Company,
@@ -123,21 +124,23 @@ function InteractionThread({
 
 function ForwardModal({
   ticket,
+  members,
   onClose,
   onForward,
 }: {
   ticket: Ticket
+  members: Array<{ user_id: string; label: string }>
   onClose: () => void
-  onForward: (values: { sector: TicketSector; assignee: string; status: TicketStatus; message: string }) => Promise<void>
+  onForward: (values: { sector: TicketSector; assigneeId: string; status: TicketStatus; message: string }) => Promise<void>
 }) {
   const [sector, setSector] = useState<TicketSector>(ticket.sector)
-  const [assignee, setAssignee] = useState(ticket.assignee ?? '')
+  const [assigneeId, setAssigneeId] = useState(ticket.assignee_id ?? '')
   const [status, setStatus] = useState<TicketStatus>(ticket.status)
   const [message, setMessage] = useState('')
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    await onForward({ sector, assignee, status, message })
+    await onForward({ sector, assigneeId, status, message })
   }
 
   return (
@@ -166,12 +169,18 @@ function ForwardModal({
           </label>
           <label className="block text-sm font-medium text-slate-700">
             Responsável
-            <input
-              value={assignee}
-              onChange={(e) => setAssignee(e.target.value)}
-              placeholder="Nome do responsável"
+            <select
+              value={assigneeId}
+              onChange={(e) => setAssigneeId(e.target.value)}
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
+            >
+              <option value="">Sem responsável</option>
+              {members.map((m) => (
+                <option key={m.user_id} value={m.user_id}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
         <label className="mt-3 block text-sm font-medium text-slate-700">
@@ -221,6 +230,7 @@ export function TicketDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { members } = useOrg()
   const { data: tickets, loading, update, remove } = useTickets()
   const { data: contacts } = useSupabaseTable<Contact>('contacts', 'name')
   const { data: companies } = useSupabaseTable<Company>('companies', 'name')
@@ -253,19 +263,28 @@ export function TicketDetail() {
     navigate('/chamados')
   }
 
+  const memberOptions = members.map((m) => ({
+    user_id: m.user_id,
+    label: m.profile?.display_name ?? m.profile?.email ?? m.user_id,
+  }))
+  const memberLabel = (userId: string | null) =>
+    memberOptions.find((m) => m.user_id === userId)?.label ?? null
+
   async function handleForward(values: {
     sector: TicketSector
-    assignee: string
+    assigneeId: string
     status: TicketStatus
     message: string
   }) {
     if (!ticket) return
+    const displayName = values.assigneeId ? memberLabel(values.assigneeId) : null
     await update(ticket.id, {
       sector: values.sector,
-      assignee: values.assignee || null,
+      assignee_id: values.assigneeId || null,
+      assignee: displayName,
       status: values.status,
     })
-    const note = `Encaminhado para ${SECTOR_LABEL[values.sector]}${values.assignee ? ` (${values.assignee})` : ''}.${
+    const note = `Encaminhado para ${SECTOR_LABEL[values.sector]}${displayName ? ` (${displayName})` : ''}.${
       values.message ? `\n${values.message}` : ''
     }`
     await addComment(note, true)
@@ -392,7 +411,7 @@ export function TicketDetail() {
                   </select>
                 </td>
                 <td className="px-4 pt-1 pb-3 text-slate-700">{SECTOR_LABEL[ticket.sector]}</td>
-                <td className="px-4 pt-1 pb-3 text-slate-700">{ticket.assignee || '—'}</td>
+                <td className="px-4 pt-1 pb-3 text-slate-700">{memberLabel(ticket.assignee_id) ?? ticket.assignee ?? '—'}</td>
                 <td className="px-4 pt-1 pb-3 text-slate-600">{new Date(ticket.created_at).toLocaleString('pt-BR')}</td>
                 <td className="px-4 pt-1 pb-3 text-slate-600">{new Date(ticket.updated_at).toLocaleString('pt-BR')}</td>
               </tr>
@@ -573,7 +592,12 @@ export function TicketDetail() {
       )}
 
       {showForward && (
-        <ForwardModal ticket={ticket} onClose={() => setShowForward(false)} onForward={handleForward} />
+        <ForwardModal
+          ticket={ticket}
+          members={memberOptions}
+          onClose={() => setShowForward(false)}
+          onForward={handleForward}
+        />
       )}
     </div>
   )

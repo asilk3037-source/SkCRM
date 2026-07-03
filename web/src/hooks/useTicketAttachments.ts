@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { db, supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
+import { useOrg } from '../context/OrgContext'
 import type { TicketAttachment } from '../types/database'
 
 const BUCKET = 'skcrm-attachments'
@@ -8,6 +9,7 @@ export const MAX_ATTACHMENT_BYTES = 40 * 1024 * 1024 // 40 MB, like SGN
 
 export function useTicketAttachments(ticketId: string) {
   const { user } = useAuth()
+  const { org } = useOrg()
   const [attachments, setAttachments] = useState<TicketAttachment[]>([])
   const [uploading, setUploading] = useState(false)
 
@@ -31,17 +33,19 @@ export function useTicketAttachments(ticketId: string) {
   const upload = useCallback(
     async (file: File) => {
       if (!user) throw new Error('Not authenticated')
+      if (!org) throw new Error('Nenhuma organização ativa')
       if (file.size > MAX_ATTACHMENT_BYTES) {
         throw new Error('O arquivo excede o limite de 40 MB.')
       }
       setUploading(true)
       try {
-        const path = `${user.id}/${ticketId}/${Date.now()}-${file.name}`
+        const path = `${org.id}/${ticketId}/${Date.now()}-${file.name}`
         const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, file)
         if (uploadError) throw uploadError
         const { error: insertError } = await db.from('ticket_attachments').insert({
           ticket_id: ticketId,
           owner_id: user.id,
+          org_id: org.id,
           file_name: file.name,
           storage_path: path,
           size_bytes: file.size,
@@ -52,7 +56,7 @@ export function useTicketAttachments(ticketId: string) {
         setUploading(false)
       }
     },
-    [ticketId, user, refresh],
+    [ticketId, user, org, refresh],
   )
 
   const download = useCallback(async (attachment: TicketAttachment) => {

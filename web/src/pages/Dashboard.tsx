@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import { useDeals } from '../hooks/useDeals'
 import { useTickets } from '../hooks/useTickets'
@@ -40,6 +41,7 @@ function NotificationCard({
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
 export function Dashboard() {
+  const { user } = useAuth()
   const { data: contacts } = useSupabaseTable<Contact>('contacts')
   const { data: companies } = useSupabaseTable<Company>('companies')
   const { data: deals } = useDeals()
@@ -51,7 +53,11 @@ export function Dashboard() {
   const pendingTasks = tasks.filter((t) => !t.done)
 
   const activeTickets = tickets.filter((t) => t.status !== 'fechado')
-  const inProgress = activeTickets.filter((t) => t.status === 'aberto' || t.status === 'em_andamento')
+  const inProgress = activeTickets.filter(
+    (t) =>
+      (t.status === 'aberto' || t.status === 'em_andamento') &&
+      (t.assignee_id === user?.id || t.assignee_id === null),
+  )
   const urgent = activeTickets.filter((t) => t.priority === 'urgente' || t.priority === 'alta')
   const awaitingValidation = tickets.filter((t) => t.status === 'resolvido')
   const stale = activeTickets.filter((t) => Date.now() - new Date(t.updated_at).getTime() > WEEK_MS)

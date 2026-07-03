@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useOrg } from '../context/OrgContext'
 
 const links = [
   { to: '/', label: 'Painel', end: true },
@@ -8,6 +9,7 @@ const links = [
   { to: '/negociacoes', label: 'Negociações' },
   { to: '/chamados', label: 'Chamados' },
   { to: '/tarefas', label: 'Tarefas' },
+  { to: '/equipe', label: 'Equipe' },
 ]
 
 const BREADCRUMB: Array<{ prefix: string; label: string }> = [
@@ -16,10 +18,12 @@ const BREADCRUMB: Array<{ prefix: string; label: string }> = [
   { prefix: '/negociacoes', label: 'Negociações' },
   { prefix: '/chamados', label: 'Chamados' },
   { prefix: '/tarefas', label: 'Tarefas' },
+  { prefix: '/equipe', label: 'Equipe' },
 ]
 
 export function Layout() {
   const { user, signOut } = useAuth()
+  const { org, loading: orgLoading } = useOrg()
   const location = useLocation()
   const crumb = BREADCRUMB.find((b) => location.pathname.startsWith(b.prefix))?.label ?? 'Painel'
 
@@ -49,6 +53,7 @@ export function Layout() {
           ))}
         </nav>
         <div className="border-t border-slate-800 p-3">
+          <p className="truncate px-3 text-xs font-medium text-slate-300">{org?.name}</p>
           <p className="truncate px-3 text-xs text-slate-400">{user?.email}</p>
           <button
             onClick={() => signOut()}
@@ -68,7 +73,7 @@ export function Layout() {
         </header>
         <main className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-6xl p-8">
-            <Outlet />
+            {orgLoading ? <p className="text-sm text-slate-500">Carregando...</p> : <Outlet />}
           </div>
         </main>
       </div>

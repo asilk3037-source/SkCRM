@@ -68,6 +68,7 @@ export type TicketSector = 'suporte' | 'comercial' | 'desenvolvimento' | 'financ
 export interface Ticket {
   id: string
   owner_id: string
+  org_id: string
   number: number
   contact_id: string | null
   company_id: string | null
@@ -78,6 +79,7 @@ export interface Ticket {
   category: TicketCategory
   sector: TicketSector
   assignee: string | null
+  assignee_id: string | null
   created_at: string
   updated_at: string
   resolved_at: string | null
@@ -121,5 +123,38 @@ export interface RecordAttachment {
   file_name: string
   storage_path: string
   size_bytes: number
+  created_at: string
+}
+
+export type OrgRole = 'admin' | 'atendente'
+
+export interface Org {
+  id: string
+  name: string
+  created_by: string
+  created_at: string
+}
+
+export interface Profile {
+  user_id: string
+  email: string
+  display_name: string | null
+  created_at: string
+}
+
+export interface OrgMember {
+  org_id: string
+  user_id: string
+  role: OrgRole
+  created_at: string
+  profile?: Profile
+}
+
+export interface OrgInvite {
+  id: string
+  org_id: string
+  email: string
+  role: OrgRole
+  created_by: string
   created_at: string
 }

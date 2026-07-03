@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { OrgProvider } from './context/OrgContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Layout } from './components/Layout'
 import { Login } from './pages/Login'
@@ -11,6 +12,7 @@ import { Deals } from './pages/Deals'
 import { Tasks } from './pages/Tasks'
 import { Tickets } from './pages/Tickets'
 import { TicketDetail } from './pages/TicketDetail'
+import { Team } from './pages/Team'
 
 function App() {
   return (
@@ -22,7 +24,9 @@ function App() {
           path="/"
           element={
             <ProtectedRoute>
-              <Layout />
+              <OrgProvider>
+                <Layout />
+              </OrgProvider>
             </ProtectedRoute>
           }
         >
@@ -33,6 +37,7 @@ function App() {
           <Route path="chamados" element={<Tickets />} />
           <Route path="chamados/:id" element={<TicketDetail />} />
           <Route path="tarefas" element={<Tasks />} />
+          <Route path="equipe" element={<Team />} />
         </Route>
       </Routes>
     </AuthProvider>
