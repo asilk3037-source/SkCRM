@@ -57,7 +57,7 @@ export function Portal() {
 
   return (
     <PortalLayout>
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-slate-900">Meus chamados</h1>
         <button
           onClick={() => setShowForm((v) => !v)}
@@ -71,7 +71,7 @@ export function Portal() {
       </p>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-6 grid grid-cols-2 gap-3 rounded-lg border border-slate-200 bg-white p-5">
+        <form onSubmit={handleSubmit} className="mb-6 grid grid-cols-1 gap-3 rounded-lg sm:grid-cols-2 border border-slate-200 bg-white p-5">
           {error && <p className="col-span-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
           <input
             required

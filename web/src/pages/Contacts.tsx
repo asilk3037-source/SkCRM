@@ -65,7 +65,7 @@ export function Contacts() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-slate-900">Contatos</h1>
         <div className="flex gap-2">
           <button
@@ -84,7 +84,7 @@ export function Contacts() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-6 grid grid-cols-2 gap-3 rounded-lg border border-slate-200 bg-white p-5">
+        <form onSubmit={handleSubmit} className="mb-6 grid grid-cols-1 gap-3 rounded-lg sm:grid-cols-2 border border-slate-200 bg-white p-5">
           <input
             required
             placeholder="Nome"
@@ -142,38 +142,40 @@ export function Contacts() {
         <p className="text-sm text-slate-500">Nenhum contato cadastrado ainda.</p>
       ) : (
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-4 py-3">Nome</th>
-                <th className="px-4 py-3">Empresa</th>
-                <th className="px-4 py-3">E-mail</th>
-                <th className="px-4 py-3">Telefone</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {contacts.map((contact) => (
-                <tr key={contact.id}>
-                  <td className="px-4 py-3 font-medium text-slate-900">{contact.name}</td>
-                  <td className="px-4 py-3 text-slate-600">{companyName(contact.company_id)}</td>
-                  <td className="px-4 py-3 text-slate-600">{contact.email}</td>
-                  <td className="px-4 py-3 text-slate-600">{contact.phone}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button onClick={() => setAttachFor(contact)} className="mr-3 text-slate-500 hover:text-slate-900">
-                      📎 Anexos
-                    </button>
-                    <button onClick={() => startEdit(contact)} className="mr-3 text-slate-500 hover:text-slate-900">
-                      Editar
-                    </button>
-                    <button onClick={() => remove(contact.id)} className="text-red-500 hover:text-red-700">
-                      Excluir
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Nome</th>
+                  <th className="px-4 py-3">Empresa</th>
+                  <th className="px-4 py-3">E-mail</th>
+                  <th className="px-4 py-3">Telefone</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {contacts.map((contact) => (
+                  <tr key={contact.id}>
+                    <td className="px-4 py-3 font-medium text-slate-900">{contact.name}</td>
+                    <td className="px-4 py-3 text-slate-600">{companyName(contact.company_id)}</td>
+                    <td className="px-4 py-3 text-slate-600">{contact.email}</td>
+                    <td className="px-4 py-3 text-slate-600">{contact.phone}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => setAttachFor(contact)} className="mr-3 text-slate-500 hover:text-slate-900">
+                        📎 Anexos
+                      </button>
+                      <button onClick={() => startEdit(contact)} className="mr-3 text-slate-500 hover:text-slate-900">
+                        Editar
+                      </button>
+                      <button onClick={() => remove(contact.id)} className="text-red-500 hover:text-red-700">
+                        Excluir
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
       {attachFor && (

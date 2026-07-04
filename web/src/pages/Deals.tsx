@@ -59,7 +59,7 @@ export function Deals() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-slate-900">Negociações</h1>
         <button
           onClick={() => setShowForm((v) => !v)}
@@ -70,7 +70,7 @@ export function Deals() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-6 grid grid-cols-2 gap-3 rounded-lg border border-slate-200 bg-white p-5">
+        <form onSubmit={handleSubmit} className="mb-6 grid grid-cols-1 gap-3 rounded-lg sm:grid-cols-2 border border-slate-200 bg-white p-5">
           <input
             required
             placeholder="Título"

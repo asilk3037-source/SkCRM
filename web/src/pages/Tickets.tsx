@@ -131,7 +131,7 @@ export function Tickets() {
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-slate-900">Chamados</h1>
         <button
           onClick={() => setShowForm((v) => !v)}
@@ -145,7 +145,7 @@ export function Tickets() {
       </p>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-6 grid grid-cols-2 gap-3 rounded-lg border border-slate-200 bg-white p-5">
+        <form onSubmit={handleSubmit} className="mb-6 grid grid-cols-1 gap-3 rounded-lg sm:grid-cols-2 border border-slate-200 bg-white p-5">
           <input
             required
             placeholder="Assunto"

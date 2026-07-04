@@ -111,6 +111,7 @@ export function Team() {
         <h2 className="border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700">
           Membros ({members.length})
         </h2>
+        <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <tbody className="divide-y divide-slate-100">
             {members.map((member) => (
@@ -153,6 +154,7 @@ export function Team() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {invites.length > 0 && (

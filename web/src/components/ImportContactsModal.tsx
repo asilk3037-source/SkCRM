@@ -167,7 +167,7 @@ export function ImportContactsModal({ onClose }: { onClose: () => void }) {
                 Pré-visualização ({rows.length} contatos
                 {rows.some((r) => r.duplicate) ? `, ${rows.filter((r) => r.duplicate).length} com e-mail duplicado` : ''})
               </p>
-              <div className="max-h-64 overflow-y-auto rounded-md border border-slate-200">
+              <div className="max-h-64 overflow-auto rounded-md border border-slate-200">
                 <table className="w-full text-left text-xs">
                   <thead className="sticky top-0 bg-slate-50 text-slate-500">
                     <tr>
