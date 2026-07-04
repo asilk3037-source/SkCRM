@@ -64,6 +64,9 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
   contato só vira cliente do portal se o e-mail dele já existir em
   `contacts` *antes* de criar a conta. Cadastrar um contato → avisar a
   pessoa (por fora) que já pode criar conta no SkCRM com esse e-mail.
+- **Anexos do portal do cliente**: o cliente agora anexa arquivos direto
+  no próprio chamado (mesmo limite de 40 MB da equipe). Só a equipe pode
+  excluir anexos — o cliente só anexa e baixa.
 - **CSV de importação de contatos** (Fase 4) — reconhece automaticamente
   colunas chamadas `nome`/`name`, `email`, `telefone`/`phone`,
   `cargo`/`job_title` e `empresa`/`company` (em qualquer ordem). Nomes de
@@ -84,3 +87,4 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
   *(03/07/2026)*
 - [x] Fase 4 — relatórios, TV Chamados, importação de contatos via CSV,
   PWA instalável *(03/07/2026)*
+- [x] Anexos do lado do cliente no portal *(04/07/2026)*

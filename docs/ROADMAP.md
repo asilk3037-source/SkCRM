@@ -56,7 +56,7 @@ Objetivo: o lado que o guia do SGN mostra — o cliente abre e acompanha os
 próprios chamados.
 - [x] Login do cliente com as caixas dele (responder, aguardando validação...)
 - [x] Cliente abre chamado e valida a conclusão
-- [ ] Anexos do lado do cliente *(infra já existe, falta o botão no portal)*
+- [x] Anexos do lado do cliente
 - [ ] E-mail que vira chamado automaticamente *(fica pra depois — canal alternativo do SGN, baixa prioridade)*
 
 ### Fase 4 — Crescimento e relatórios

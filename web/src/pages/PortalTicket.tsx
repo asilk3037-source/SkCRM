@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { PortalLayout } from '../components/PortalLayout'
-import { usePortalTickets, usePortalComments } from '../hooks/usePortal'
+import { usePortalTickets, usePortalComments, usePortalAttachments } from '../hooks/usePortal'
 import { useAuth } from '../context/AuthContext'
-import { STATUS_LABEL, STATUS_COLOR, CATEGORY_LABEL, PRIORITY_LABEL } from '../lib/ticketMeta'
+import { STATUS_LABEL, STATUS_COLOR, CATEGORY_LABEL, PRIORITY_LABEL, formatBytes } from '../lib/ticketMeta'
 
 export function PortalTicket() {
   const { id } = useParams<{ id: string }>()
@@ -11,9 +11,12 @@ export function PortalTicket() {
   const { tickets, loading, addComment, validate } = usePortalTickets()
   const [text, setText] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [attachmentError, setAttachmentError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const ticket = tickets.find((t) => t.id === id)
   const { comments, refresh: refreshComments } = usePortalComments(id ?? '', ticket?.updated_at)
+  const { attachments, uploading, upload, download } = usePortalAttachments(id ?? '')
 
   if (loading) {
     return (
@@ -34,6 +37,16 @@ export function PortalTicket() {
       setText('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível enviar')
+    }
+  }
+
+  async function handleUpload(file: File | undefined) {
+    if (!file) return
+    setAttachmentError(null)
+    try {
+      await upload(file)
+    } catch (err) {
+      setAttachmentError(err instanceof Error ? err.message : 'Falha ao enviar o arquivo')
     }
   }
 
@@ -88,6 +101,49 @@ export function PortalTicket() {
           <p className="mt-0.5 whitespace-pre-wrap text-sm text-slate-700">{ticket.description}</p>
         </div>
       )}
+
+      <div className="mb-6 rounded-lg border border-slate-200 bg-white">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-2.5">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-700">Anexos ({attachments.length})</h2>
+            <p className="text-xs text-slate-400">Envie capturas de tela ou documentos — limite de 40 MB por arquivo</p>
+          </div>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+          >
+            {uploading ? 'Enviando...' : '📎 Anexar arquivo'}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => handleUpload(e.target.files?.[0])}
+          />
+        </div>
+        {attachmentError && (
+          <p className="border-b border-red-100 bg-red-50 px-4 py-2 text-sm text-red-700">{attachmentError}</p>
+        )}
+        {attachments.length === 0 ? (
+          <p className="px-4 py-3 text-sm text-slate-400">Nenhum arquivo anexado ainda.</p>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {attachments.map((att) => (
+              <li key={att.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                <span className="text-slate-400">📎</span>
+                <button onClick={() => download(att)} className="font-medium text-orange-600 hover:underline">
+                  {att.file_name}
+                </button>
+                <span className="text-xs text-slate-400">{formatBytes(att.size_bytes)}</span>
+                <span className="ml-auto text-xs text-slate-400">
+                  {new Date(att.created_at).toLocaleDateString('pt-BR')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <div className="rounded-lg border border-slate-200 bg-white">
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-2.5">
