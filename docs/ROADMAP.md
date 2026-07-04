@@ -16,7 +16,9 @@ chamado · filtros avançados · organizações/equipe com papéis admin×atende
 · portal do cliente (login próprio, abrir/responder/validar chamado) ·
 relatórios (funil, tempo de resolução, produção por pessoa) · TV Chamados ·
 importação de contatos via CSV · PWA instalável · notificação por e-mail
-(chamado aberto, nova interação, convite de equipe) via Resend.
+(chamado aberto, nova interação, convite de equipe) via Resend · layout
+adaptado para celular (menu lateral vira gaveta, formulários e tabelas
+com rolagem).
 
 ## Pendências imediatas
 

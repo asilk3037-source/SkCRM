@@ -96,3 +96,6 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
   equipe) via Resend *(04/07/2026)*
 - [x] Níveis de perfil (suporte/supervisor/administrador) e regras de
   validação em todos os cadastros *(04/07/2026)*
+- [x] Adaptação para celular: menu lateral vira gaveta, formulários
+  empilham em coluna única, tabelas com rolagem horizontal
+  *(04/07/2026)*
