@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { db } from '../lib/supabaseClient'
 import { useAuth } from './AuthContext'
+import { notify } from '../lib/notify'
 import type { Org, OrgInvite, OrgMember, OrgRole } from '../types/database'
 
 interface OrgContextValue {
@@ -79,13 +80,18 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   const invite = useCallback(
     async (email: string, inviteRole: OrgRole) => {
       if (!org || !user) throw new Error('Sem organização ativa')
-      const { error } = await db.from('org_invites').insert({
-        org_id: org.id,
-        email: email.trim().toLowerCase(),
-        role: inviteRole,
-        created_by: user.id,
-      } as never)
+      const { data: created, error } = await db
+        .from('org_invites')
+        .insert({
+          org_id: org.id,
+          email: email.trim().toLowerCase(),
+          role: inviteRole,
+          created_by: user.id,
+        } as never)
+        .select()
+        .single()
       if (error) throw error
+      notify('org_invite', (created as OrgInvite).id)
       await refresh()
     },
     [org, user, refresh],
