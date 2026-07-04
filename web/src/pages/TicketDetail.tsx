@@ -25,6 +25,7 @@ import {
   SECTOR_LABEL,
   formatBytes,
 } from '../lib/ticketMeta'
+import { MAX_COMMENT_LENGTH } from '../lib/validators'
 
 /** Turns "aberto -> resolvido" into "Aberto → Resolvido" using the label maps. */
 function formatEventDetail(detail: string | null) {
@@ -68,12 +69,18 @@ function InteractionThread({
   placeholder: string
 }) {
   const [text, setText] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!text.trim()) return
-    await onSend(text.trim())
-    setText('')
+    setError(null)
+    try {
+      await onSend(text.trim())
+      setText('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível enviar')
+    }
   }
 
   return (
@@ -102,11 +109,13 @@ function InteractionThread({
         {comments.length === 0 && <p className="text-sm text-slate-400">Nenhuma interação ainda.</p>}
       </div>
       <form onSubmit={handleSubmit} className="border-t border-slate-200 p-3">
+        {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={placeholder}
           rows={2}
+          maxLength={MAX_COMMENT_LENGTH}
           className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
         />
         <div className="mt-2 flex justify-end">
@@ -230,7 +239,8 @@ export function TicketDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { members } = useOrg()
+  const { members, role } = useOrg()
+  const canDelete = role === 'admin' || role === 'supervisor'
   const { data: tickets, loading, update, remove } = useTickets()
   const { data: contacts } = useSupabaseTable<Contact>('contacts', 'name')
   const { data: companies } = useSupabaseTable<Company>('companies', 'name')
@@ -307,9 +317,11 @@ export function TicketDetail() {
         <Link to="/chamados" className="text-sm text-slate-500 hover:text-slate-900">
           ← Voltar para chamados
         </Link>
-        <button onClick={handleDelete} className="text-sm text-red-500 hover:text-red-700">
-          Excluir chamado
-        </button>
+        {canDelete && (
+          <button onClick={handleDelete} className="text-sm text-red-500 hover:text-red-700">
+            Excluir chamado
+          </button>
+        )}
       </div>
 
       {/* Header — SGN style */}

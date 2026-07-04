@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { db, supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { useOrg } from '../context/OrgContext'
+import { isBlockedAttachment } from '../lib/validators'
 import type { TicketAttachment } from '../types/database'
 
 const BUCKET = 'skcrm-attachments'
@@ -36,6 +37,9 @@ export function useTicketAttachments(ticketId: string) {
       if (!org) throw new Error('Nenhuma organização ativa')
       if (file.size > MAX_ATTACHMENT_BYTES) {
         throw new Error('O arquivo excede o limite de 40 MB.')
+      }
+      if (isBlockedAttachment(file.name)) {
+        throw new Error('Este tipo de arquivo não é permitido por segurança.')
       }
       setUploading(true)
       try {

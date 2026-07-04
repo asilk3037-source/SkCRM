@@ -4,6 +4,7 @@ import { PortalLayout } from '../components/PortalLayout'
 import { usePortalTickets, usePortalComments, usePortalAttachments } from '../hooks/usePortal'
 import { useAuth } from '../context/AuthContext'
 import { STATUS_LABEL, STATUS_COLOR, CATEGORY_LABEL, PRIORITY_LABEL, formatBytes } from '../lib/ticketMeta'
+import { MAX_COMMENT_LENGTH } from '../lib/validators'
 
 export function PortalTicket() {
   const { id } = useParams<{ id: string }>()
@@ -179,6 +180,7 @@ export function PortalTicket() {
             onChange={(e) => setText(e.target.value)}
             placeholder="Escreva aqui a mensagem — a equipe será notificada e o chamado volta para a fila de atendimento."
             rows={3}
+            maxLength={MAX_COMMENT_LENGTH}
             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
           <div className="mt-2 flex justify-end">

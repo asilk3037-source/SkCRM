@@ -39,6 +39,10 @@ export function Portal() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+    if (form.category === 'erro_sistema' && !form.description.trim()) {
+      setError('Descreva o erro — obrigatório para esse tipo de chamado.')
+      return
+    }
     try {
       const id = await openTicket(form)
       setForm(emptyForm)

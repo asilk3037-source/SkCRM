@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { db } from '../lib/supabaseClient'
 import { useAuth } from './AuthContext'
 import { notify } from '../lib/notify'
+import { friendlyDbError } from '../lib/validators'
 import type { Org, OrgInvite, OrgMember, OrgRole } from '../types/database'
 
 interface OrgContextValue {
@@ -90,7 +91,9 @@ export function OrgProvider({ children }: { children: ReactNode }) {
         } as never)
         .select()
         .single()
-      if (error) throw error
+      if (error) {
+        throw new Error(friendlyDbError(error, 'Não foi possível convidar', 'Já existe um convite pendente para esse e-mail.'))
+      }
       notify('org_invite', (created as OrgInvite).id)
       await refresh()
     },

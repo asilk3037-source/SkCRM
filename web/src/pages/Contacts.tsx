@@ -3,6 +3,7 @@ import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import { AttachmentsModal } from '../components/AttachmentsModal'
 import { ImportContactsModal } from '../components/ImportContactsModal'
 import type { Contact, Company } from '../types/database'
+import { formatPhoneBR, friendlyDbError, isValidPhoneBR } from '../lib/validators'
 
 const emptyForm = { name: '', email: '', phone: '', job_title: '', company_id: '', notes: '' }
 
@@ -14,6 +15,7 @@ export function Contacts() {
   const [showForm, setShowForm] = useState(false)
   const [attachFor, setAttachFor] = useState<Contact | null>(null)
   const [showImport, setShowImport] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const companyName = (id: string | null) => companies.find((c) => c.id === id)?.name ?? '—'
 
@@ -34,17 +36,31 @@ export function Contacts() {
     setForm(emptyForm)
     setEditingId(null)
     setShowForm(false)
+    setError(null)
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    const values = { ...form, company_id: form.company_id || null }
-    if (editingId) {
-      await update(editingId, values)
-    } else {
-      await create(values)
+    setError(null)
+    if (form.name.trim().length < 2) {
+      setError('O nome precisa ter pelo menos 2 caracteres.')
+      return
     }
-    resetForm()
+    if (!isValidPhoneBR(form.phone)) {
+      setError('Telefone inválido — use DDD + número.')
+      return
+    }
+    const values = { ...form, company_id: form.company_id || null }
+    try {
+      if (editingId) {
+        await update(editingId, values)
+      } else {
+        await create(values)
+      }
+      resetForm()
+    } catch (err) {
+      setError(friendlyDbError(err, 'Não foi possível salvar o contato', 'Já existe um contato com esse e-mail.'))
+    }
   }
 
   return (
@@ -86,7 +102,7 @@ export function Contacts() {
           <input
             placeholder="Telefone"
             value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            onChange={(e) => setForm({ ...form, phone: formatPhoneBR(e.target.value) })}
             className="rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
           <input
@@ -113,6 +129,7 @@ export function Contacts() {
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
             className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
+          {error && <p className="col-span-2 text-sm text-red-600">{error}</p>}
           <button type="submit" className="col-span-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">
             {editingId ? 'Salvar alterações' : 'Adicionar'}
           </button>
