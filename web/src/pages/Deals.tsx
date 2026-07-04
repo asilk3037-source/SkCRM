@@ -14,18 +14,42 @@ export function Deals() {
   const [form, setForm] = useState(emptyForm)
   const [showForm, setShowForm] = useState(false)
   const [attachFor, setAttachFor] = useState<Deal | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name
   const companyName = (id: string | null) => companies.find((c) => c.id === id)?.name
+  const todayStr = new Date().toISOString().slice(0, 10)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    setError(null)
+
+    let value = 0
+    if (form.value.trim()) {
+      value = Number(form.value)
+      if (Number.isNaN(value) || value < 0) {
+        setError('Valor inválido — informe um número maior ou igual a zero.')
+        return
+      }
+    }
+
+    const stageId = form.stage_id || stages[0]?.id || ''
+    if (!stageId) {
+      setError('Selecione uma etapa do funil.')
+      return
+    }
+
+    if (form.expected_close_date && form.expected_close_date < todayStr) {
+      setError('A data prevista de fechamento não pode estar no passado.')
+      return
+    }
+
     await create({
       title: form.title,
-      value: Number(form.value) || 0,
+      value,
       contact_id: form.contact_id || null,
       company_id: form.company_id || null,
-      stage_id: form.stage_id || stages[0]?.id || null,
+      stage_id: stageId,
       expected_close_date: form.expected_close_date || null,
       status: 'open',
     })
@@ -57,6 +81,7 @@ export function Deals() {
           <input
             type="number"
             step="0.01"
+            min="0"
             placeholder="Valor (R$)"
             value={form.value}
             onChange={(e) => setForm({ ...form, value: e.target.value })}
@@ -64,6 +89,7 @@ export function Deals() {
           />
           <input
             type="date"
+            min={todayStr}
             value={form.expected_close_date}
             onChange={(e) => setForm({ ...form, expected_close_date: e.target.value })}
             className="rounded-md border border-slate-300 px-3 py-2 text-sm"
@@ -104,6 +130,7 @@ export function Deals() {
               </option>
             ))}
           </select>
+          {error && <p className="col-span-2 text-sm text-red-600">{error}</p>}
           <button type="submit" className="col-span-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">
             Adicionar
           </button>

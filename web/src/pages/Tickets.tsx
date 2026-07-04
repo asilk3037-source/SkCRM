@@ -2,17 +2,24 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTickets } from '../hooks/useTickets'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
-import type { Contact, Company, Ticket, TicketCategory, TicketSector, TicketStatus } from '../types/database'
+import type { Contact, Company, Ticket, TicketCategory, TicketPriority, TicketSector, TicketStatus } from '../types/database'
 import { STATUS_LABEL, STATUS_COLOR, PRIORITY_LABEL, PRIORITY_COLOR, CATEGORY_LABEL, SECTOR_LABEL } from '../lib/ticketMeta'
 import { notify } from '../lib/notify'
 
-const emptyForm = {
+const emptyForm: {
+  subject: string
+  description: string
+  contact_id: string
+  company_id: string
+  priority: TicketPriority
+  category: TicketCategory
+} = {
   subject: '',
   description: '',
   contact_id: '',
   company_id: '',
-  priority: 'media' as const,
-  category: 'suporte' as const,
+  priority: 'media',
+  category: 'suporte',
 }
 
 /** SGN-style management boxes: each groups tickets by "who needs to act". */
@@ -44,6 +51,7 @@ export function Tickets() {
   const { data: companies } = useSupabaseTable<Company>('companies', 'name')
   const [form, setForm] = useState(emptyForm)
   const [showForm, setShowForm] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
 
   // "Outros chamados" filters
   const [search, setSearch] = useState('')
@@ -97,6 +105,15 @@ export function Tickets() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    setFormError(null)
+    if (!form.contact_id && !form.company_id) {
+      setFormError('Selecione um contato ou uma empresa.')
+      return
+    }
+    if (form.category === 'erro_sistema' && !form.description.trim()) {
+      setFormError('Descreva o erro — obrigatório para chamados desse tipo.')
+      return
+    }
     const created = await create({
       subject: form.subject,
       description: form.description || null,
@@ -189,6 +206,7 @@ export function Tickets() {
             rows={3}
             className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
+          {formError && <p className="col-span-2 text-sm text-red-600">{formError}</p>}
           <button type="submit" className="col-span-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">
             Abrir chamado
           </button>
@@ -222,6 +240,14 @@ export function Tickets() {
                               <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${PRIORITY_COLOR[t.priority]}`}>
                                 {PRIORITY_LABEL[t.priority]}
                               </span>
+                              {t.priority === 'urgente' && !t.assignee_id && (
+                                <span
+                                  title="Urgente sem responsável"
+                                  className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700"
+                                >
+                                  ⚠ sem responsável
+                                </span>
+                              )}
                             </div>
                             <p className="mt-0.5 truncate text-sm font-medium text-slate-800">{t.subject}</p>
                             <p className="truncate text-xs text-slate-400">{requesterOf(t)}</p>

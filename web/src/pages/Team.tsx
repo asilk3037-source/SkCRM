@@ -3,13 +3,13 @@ import { useAuth } from '../context/AuthContext'
 import { useOrg } from '../context/OrgContext'
 import type { OrgRole } from '../types/database'
 
-const ROLE_LABEL: Record<OrgRole, string> = { admin: 'Administrador', atendente: 'Atendente' }
+const ROLE_LABEL: Record<OrgRole, string> = { admin: 'Administrador', supervisor: 'Supervisor', suporte: 'Suporte' }
 
 export function Team() {
   const { user } = useAuth()
   const { org, members, invites, isAdmin, invite, removeMember, setMemberRole, cancelInvite, renameOrg } = useOrg()
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<OrgRole>('atendente')
+  const [role, setRole] = useState<OrgRole>('suporte')
   const [error, setError] = useState<string | null>(null)
   const [orgName, setOrgName] = useState('')
   const [editingName, setEditingName] = useState(false)
@@ -87,7 +87,8 @@ export function Team() {
               onChange={(e) => setRole(e.target.value as OrgRole)}
               className="mt-1 block rounded-md border border-slate-300 px-3 py-2 text-sm"
             >
-              <option value="atendente">Atendente</option>
+              <option value="suporte">Suporte</option>
+              <option value="supervisor">Supervisor</option>
               <option value="admin">Administrador</option>
             </select>
           </label>
@@ -98,6 +99,10 @@ export function Team() {
           <p className="w-full text-xs text-slate-400">
             Se a pessoa já tem conta no SkCRM, entra na equipe na hora. Se não tem, entra automaticamente assim que se
             cadastrar com esse e-mail.
+          </p>
+          <p className="w-full text-xs text-slate-400">
+            <strong>Suporte</strong>: atende e responde chamados. <strong>Supervisor</strong>: além disso, pode
+            excluir chamados. <strong>Administrador</strong>: além disso, gerencia a equipe e a organização.
           </p>
         </form>
       )}
@@ -127,7 +132,8 @@ export function Team() {
                       onChange={(e) => setMemberRole(member.user_id, e.target.value as OrgRole)}
                       className="rounded-md border border-slate-300 px-2 py-1 text-sm"
                     >
-                      <option value="atendente">Atendente</option>
+                      <option value="suporte">Suporte</option>
+                      <option value="supervisor">Supervisor</option>
                       <option value="admin">Administrador</option>
                     </select>
                   ) : (

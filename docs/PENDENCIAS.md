@@ -53,6 +53,11 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
   Cada conta existente virou uma organização própria na migração. Convites:
   Equipe → "Convidar por e-mail"; quem já tem conta entra na hora, quem não
   tem entra ao se cadastrar com o e-mail convidado.
+- **Papéis da equipe agora têm 3 níveis** *(04/07/2026)*: quem era
+  "Atendente" virou automaticamente "Suporte" (mesmas permissões de
+  antes). O novo nível "Supervisor" fica entre Suporte e Administrador
+  — além de atender chamados, também pode excluí-los. Só Administrador
+  continua gerenciando equipe/organização.
 - **Convite já envia e-mail** *(04/07/2026)* — sujeito à limitação do
   Resend acima (só chega em caixas verificadas até você configurar um
   domínio próprio).
@@ -89,3 +94,5 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
 - [x] Anexos do lado do cliente no portal *(04/07/2026)*
 - [x] Notificação por e-mail (chamado aberto, nova interação, convite de
   equipe) via Resend *(04/07/2026)*
+- [x] Níveis de perfil (suporte/supervisor/administrador) e regras de
+  validação em todos os cadastros *(04/07/2026)*

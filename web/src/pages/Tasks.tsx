@@ -80,7 +80,16 @@ export function Tasks() {
                     {task.description && <p className="text-xs text-slate-500">{task.description}</p>}
                   </div>
                   {task.due_date && (
-                    <span className="text-xs text-slate-400">{new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
+                    <span
+                      className={`text-xs ${
+                        new Date(task.due_date) < new Date(new Date().toDateString())
+                          ? 'font-semibold text-red-600'
+                          : 'text-slate-400'
+                      }`}
+                    >
+                      {new Date(task.due_date).toLocaleDateString('pt-BR')}
+                      {new Date(task.due_date) < new Date(new Date().toDateString()) ? ' · atrasada' : ''}
+                    </span>
                   )}
                   <button onClick={() => remove(task.id)} className="text-red-500 hover:text-red-700">
                     Excluir

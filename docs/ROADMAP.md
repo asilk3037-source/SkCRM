@@ -50,7 +50,7 @@ mais importante do projeto — melhor fazer cedo.
   para organização)
 - [x] Encaminhar para uma pessoa real (hoje "responsável" é texto livre)
 - [x] "Chamados sob sua responsabilidade" por pessoa
-- [x] Permissões: administrador × atendente
+- [x] Permissões em 3 níveis: suporte × supervisor × administrador
 
 ### Fase 3 — Portal do cliente ✅
 Objetivo: o lado que o guia do SGN mostra — o cliente abre e acompanha os
@@ -66,6 +66,31 @@ próprios chamados.
 - [x] Importação de contatos via CSV (com preview antes de confirmar)
 - [x] PWA instalável no celular (ícone, tela cheia, abre offline a última tela vista)
 - [ ] Integração WhatsApp *(precisa de decisão: WhatsApp Business API tem custo e homologação — ver PENDENCIAS.md)*
+
+## Regras de validação e níveis de perfil (04/07/2026)
+
+- **Níveis de perfil para atendimento**: papel de equipe agora tem 3
+  níveis — **Suporte** (atende e responde chamados), **Supervisor**
+  (além disso, pode excluir chamados) e **Administrador** (além disso,
+  gerencia equipe e organização). Reforçado tanto na interface quanto
+  no banco (RLS): um Suporte não consegue excluir chamado nem pela API
+  direta.
+- **Regras de validação** adicionadas em todos os cadastros:
+  - Empresas/Contatos: nome mínimo 2 caracteres, nome de empresa e
+    e-mail de contato não podem se repetir na mesma organização,
+    telefone com máscara/validação brasileira, site validado como URL
+  - Negociações: etapa do funil obrigatória, valor não pode ser
+    negativo, data prevista não pode estar no passado
+  - Chamados: precisa de um contato ou empresa vinculado; descrição
+    obrigatória para chamados do tipo "erro de sistema"; aviso visual
+    quando um chamado urgente está sem responsável
+  - Interações/comentários: limite de 5.000 caracteres
+  - Anexos: bloqueio de tipos de arquivo perigosos (.exe, .bat, .js,
+    .jar etc.), além do limite de 40 MB já existente
+  - Convite de equipe: não permite convidar o mesmo e-mail duas vezes
+  - Cadastro: senha mínima de 8 caracteres com letras e números
+  - Importação CSV: contatos com e-mail já existente (na base ou
+    repetido no próprio arquivo) são ignorados na importação
 
 ## Ordem sugerida
 

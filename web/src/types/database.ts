@@ -126,7 +126,7 @@ export interface RecordAttachment {
   created_at: string
 }
 
-export type OrgRole = 'admin' | 'atendente'
+export type OrgRole = 'admin' | 'supervisor' | 'suporte'
 
 export interface Org {
   id: string

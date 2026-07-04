@@ -3,6 +3,7 @@ import { db, supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { useOrg } from '../context/OrgContext'
 import { MAX_ATTACHMENT_BYTES } from './useTicketAttachments'
+import { isBlockedAttachment } from '../lib/validators'
 import type { RecordAttachment } from '../types/database'
 
 const BUCKET = 'skcrm-attachments'
@@ -37,6 +38,7 @@ export function useRecordAttachments(kind: 'contact' | 'deal', recordId: string)
       if (!user) throw new Error('Not authenticated')
       if (!org) throw new Error('Nenhuma organização ativa')
       if (file.size > MAX_ATTACHMENT_BYTES) throw new Error('O arquivo excede o limite de 40 MB.')
+      if (isBlockedAttachment(file.name)) throw new Error('Este tipo de arquivo não é permitido por segurança.')
       setUploading(true)
       try {
         const path = `${org.id}/${kind}-${recordId}/${Date.now()}-${file.name}`

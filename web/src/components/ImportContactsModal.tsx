@@ -3,9 +3,10 @@ import { parseCsvWithHeader } from '../lib/csv'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import type { Contact, Company } from '../types/database'
 
-type Row = { name: string; email: string; phone: string; job_title: string; company: string }
+type ParsedFields = { name: string; email: string; phone: string; job_title: string; company: string }
+type Row = ParsedFields & { duplicate: boolean }
 
-const COLUMN_HINTS: Record<keyof Row, string[]> = {
+const COLUMN_HINTS: Record<keyof ParsedFields, string[]> = {
   name: ['nome', 'name'],
   email: ['email', 'e-mail'],
   phone: ['telefone', 'phone', 'celular'],
@@ -18,7 +19,7 @@ function guessColumn(headers: string[], hints: string[]) {
 }
 
 export function ImportContactsModal({ onClose }: { onClose: () => void }) {
-  const { create: createContact } = useSupabaseTable<Contact>('contacts')
+  const { data: existingContacts, create: createContact } = useSupabaseTable<Contact>('contacts')
   const { data: companies, create: createCompany } = useSupabaseTable<Company>('companies', 'name')
   const [rows, setRows] = useState<Row[]>([])
   const [fileName, setFileName] = useState('')
@@ -52,6 +53,10 @@ export function ImportContactsModal({ onClose }: { onClose: () => void }) {
       const jobCol = guessColumn(headers, COLUMN_HINTS.job_title)
       const companyCol = guessColumn(headers, COLUMN_HINTS.company)
 
+      const existingEmails = new Set(
+        existingContacts.filter((c) => c.email).map((c) => c.email!.toLowerCase()),
+      )
+      const seenInFile = new Set<string>()
       const mapped = parsed
         .map((r) => ({
           name: r[nameCol] ?? '',
@@ -61,6 +66,12 @@ export function ImportContactsModal({ onClose }: { onClose: () => void }) {
           company: companyCol ? (r[companyCol] ?? '') : '',
         }))
         .filter((r) => r.name)
+        .map((r) => {
+          const email = r.email.trim().toLowerCase()
+          const duplicate = !!email && (existingEmails.has(email) || seenInFile.has(email))
+          if (email) seenInFile.add(email)
+          return { ...r, duplicate }
+        })
       setRows(mapped)
     } catch {
       setError('Não consegui ler esse arquivo. Confirme que é um CSV de texto.')
@@ -74,6 +85,10 @@ export function ImportContactsModal({ onClose }: { onClose: () => void }) {
     let skipped = 0
     try {
       for (const row of rows) {
+        if (row.duplicate) {
+          skipped++
+          continue
+        }
         let companyId: string | null = null
         if (row.company) {
           const existing = companies.find((c) => c.name.toLowerCase() === row.company.toLowerCase())
@@ -148,7 +163,10 @@ export function ImportContactsModal({ onClose }: { onClose: () => void }) {
 
           {rows.length > 0 && !done && (
             <div className="mt-4">
-              <p className="mb-2 text-sm font-medium text-slate-700">Pré-visualização ({rows.length} contatos)</p>
+              <p className="mb-2 text-sm font-medium text-slate-700">
+                Pré-visualização ({rows.length} contatos
+                {rows.some((r) => r.duplicate) ? `, ${rows.filter((r) => r.duplicate).length} com e-mail duplicado` : ''})
+              </p>
               <div className="max-h-64 overflow-y-auto rounded-md border border-slate-200">
                 <table className="w-full text-left text-xs">
                   <thead className="sticky top-0 bg-slate-50 text-slate-500">
@@ -161,9 +179,12 @@ export function ImportContactsModal({ onClose }: { onClose: () => void }) {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {rows.slice(0, 50).map((r, i) => (
-                      <tr key={i}>
+                      <tr key={i} className={r.duplicate ? 'bg-amber-50 text-amber-800' : undefined}>
                         <td className="px-3 py-1.5">{r.name}</td>
-                        <td className="px-3 py-1.5">{r.email}</td>
+                        <td className="px-3 py-1.5">
+                          {r.email}
+                          {r.duplicate && <span className="ml-1 text-[10px]">(duplicado, será ignorado)</span>}
+                        </td>
                         <td className="px-3 py-1.5">{r.phone}</td>
                         <td className="px-3 py-1.5">{r.company}</td>
                       </tr>

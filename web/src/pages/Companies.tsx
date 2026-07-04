@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import type { Company } from '../types/database'
+import { formatPhoneBR, friendlyDbError, isValidPhoneBR, isValidUrl, normalizeUrl } from '../lib/validators'
 
 const emptyForm = { name: '', website: '', phone: '', address: '', notes: '' }
 
@@ -9,6 +10,7 @@ export function Companies() {
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   function startEdit(company: Company) {
     setEditingId(company.id)
@@ -26,16 +28,35 @@ export function Companies() {
     setForm(emptyForm)
     setEditingId(null)
     setShowForm(false)
+    setError(null)
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (editingId) {
-      await update(editingId, form)
-    } else {
-      await create(form)
+    setError(null)
+    if (form.name.trim().length < 2) {
+      setError('O nome precisa ter pelo menos 2 caracteres.')
+      return
     }
-    resetForm()
+    if (!isValidUrl(form.website)) {
+      setError('Website inválido.')
+      return
+    }
+    if (!isValidPhoneBR(form.phone)) {
+      setError('Telefone inválido — use DDD + número.')
+      return
+    }
+    const values = { ...form, website: form.website.trim() ? normalizeUrl(form.website) : '' }
+    try {
+      if (editingId) {
+        await update(editingId, values)
+      } else {
+        await create(values)
+      }
+      resetForm()
+    } catch (err) {
+      setError(friendlyDbError(err, 'Não foi possível salvar a empresa', 'Já existe uma empresa com esse nome.'))
+    }
   }
 
   return (
@@ -68,7 +89,7 @@ export function Companies() {
           <input
             placeholder="Telefone"
             value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            onChange={(e) => setForm({ ...form, phone: formatPhoneBR(e.target.value) })}
             className="rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
           <input
@@ -83,6 +104,7 @@ export function Companies() {
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
             className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
+          {error && <p className="col-span-2 text-sm text-red-600">{error}</p>}
           <button type="submit" className="col-span-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">
             {editingId ? 'Salvar alterações' : 'Adicionar'}
           </button>

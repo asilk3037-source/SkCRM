@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { db, supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { notify } from '../lib/notify'
+import { isBlockedAttachment, MAX_COMMENT_LENGTH } from '../lib/validators'
 import type { Ticket, TicketComment, TicketAttachment } from '../types/database'
 
 const ATTACHMENTS_BUCKET = 'skcrm-attachments'
@@ -50,6 +51,9 @@ export function usePortalTickets() {
 
   const addComment = useCallback(
     async (ticketId: string, body: string) => {
+      if (body.length > MAX_COMMENT_LENGTH) {
+        throw new Error(`Mensagem muito longa (limite de ${MAX_COMMENT_LENGTH} caracteres).`)
+      }
       const { data, error } = await db.rpc('portal_add_comment', { p_ticket: ticketId, p_body: body })
       if (error) throw error
       if (data) notify('ticket_comment', data as string)
@@ -127,6 +131,9 @@ export function usePortalAttachments(ticketId: string) {
       if (!user) throw new Error('Not authenticated')
       if (file.size > MAX_PORTAL_ATTACHMENT_BYTES) {
         throw new Error('O arquivo excede o limite de 40 MB.')
+      }
+      if (isBlockedAttachment(file.name)) {
+        throw new Error('Este tipo de arquivo não é permitido por segurança.')
       }
       setUploading(true)
       try {
