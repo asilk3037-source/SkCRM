@@ -13,6 +13,10 @@ import { Tasks } from './pages/Tasks'
 import { Tickets } from './pages/Tickets'
 import { TicketDetail } from './pages/TicketDetail'
 import { Team } from './pages/Team'
+import { Portal } from './pages/Portal'
+import { PortalTicket } from './pages/PortalTicket'
+import { Reports } from './pages/Reports'
+import { TicketsTV } from './pages/TicketsTV'
 
 function App() {
   return (
@@ -20,6 +24,32 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/cadastro" element={<Signup />} />
+        <Route
+          path="/portal"
+          element={
+            <ProtectedRoute>
+              <Portal />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/:id"
+          element={
+            <ProtectedRoute>
+              <PortalTicket />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tv"
+          element={
+            <ProtectedRoute>
+              <OrgProvider>
+                <TicketsTV />
+              </OrgProvider>
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/"
           element={
@@ -37,6 +67,7 @@ function App() {
           <Route path="chamados" element={<Tickets />} />
           <Route path="chamados/:id" element={<TicketDetail />} />
           <Route path="tarefas" element={<Tasks />} />
+          <Route path="relatorios" element={<Reports />} />
           <Route path="equipe" element={<Team />} />
         </Route>
       </Routes>

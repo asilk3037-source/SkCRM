@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import { AttachmentsModal } from '../components/AttachmentsModal'
+import { ImportContactsModal } from '../components/ImportContactsModal'
 import type { Contact, Company } from '../types/database'
 
 const emptyForm = { name: '', email: '', phone: '', job_title: '', company_id: '', notes: '' }
@@ -12,6 +13,7 @@ export function Contacts() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [attachFor, setAttachFor] = useState<Contact | null>(null)
+  const [showImport, setShowImport] = useState(false)
 
   const companyName = (id: string | null) => companies.find((c) => c.id === id)?.name ?? '—'
 
@@ -49,12 +51,20 @@ export function Contacts() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">Contatos</h1>
-        <button
-          onClick={() => (showForm ? resetForm() : setShowForm(true))}
-          className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
-        >
-          {showForm ? 'Cancelar' : 'Novo contato'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowImport(true)}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Importar CSV
+          </button>
+          <button
+            onClick={() => (showForm ? resetForm() : setShowForm(true))}
+            className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
+          >
+            {showForm ? 'Cancelar' : 'Novo contato'}
+          </button>
+        </div>
       </div>
 
       {showForm && (
@@ -157,6 +167,7 @@ export function Contacts() {
           onClose={() => setAttachFor(null)}
         />
       )}
+      {showImport && <ImportContactsModal onClose={() => setShowImport(false)} />}
     </div>
   )
 }

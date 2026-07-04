@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Navigate, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useOrg } from '../context/OrgContext'
 
@@ -9,6 +9,7 @@ const links = [
   { to: '/negociacoes', label: 'Negociações' },
   { to: '/chamados', label: 'Chamados' },
   { to: '/tarefas', label: 'Tarefas' },
+  { to: '/relatorios', label: 'Relatórios' },
   { to: '/equipe', label: 'Equipe' },
 ]
 
@@ -18,6 +19,7 @@ const BREADCRUMB: Array<{ prefix: string; label: string }> = [
   { prefix: '/negociacoes', label: 'Negociações' },
   { prefix: '/chamados', label: 'Chamados' },
   { prefix: '/tarefas', label: 'Tarefas' },
+  { prefix: '/relatorios', label: 'Relatórios' },
   { prefix: '/equipe', label: 'Equipe' },
 ]
 
@@ -26,6 +28,11 @@ export function Layout() {
   const { org, loading: orgLoading } = useOrg()
   const location = useLocation()
   const crumb = BREADCRUMB.find((b) => location.pathname.startsWith(b.prefix))?.label ?? 'Painel'
+
+  // Sem organização = cliente do portal (contato cadastrado por alguma equipe)
+  if (!orgLoading && !org) {
+    return <Navigate to="/portal" replace />
+  }
 
   return (
     <div className="flex h-screen bg-slate-100">
@@ -52,6 +59,16 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
+        <div className="border-t border-slate-800 p-3">
+          <a
+            href={`${import.meta.env.BASE_URL}tv`}
+            target="_blank"
+            rel="noreferrer"
+            className="block rounded-md px-3 py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 hover:text-white"
+          >
+            📺 Abrir TV Chamados
+          </a>
+        </div>
         <div className="border-t border-slate-800 p-3">
           <p className="truncate px-3 text-xs font-medium text-slate-300">{org?.name}</p>
           <p className="truncate px-3 text-xs text-slate-400">{user?.email}</p>

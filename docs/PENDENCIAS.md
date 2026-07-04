@@ -25,10 +25,17 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
 
 ## Decisões que estão travando funcionalidades
 
-- [ ] **Provedor de e-mail para notificações** (Fase 1, único item restante)
-  — sugestão: criar conta gratuita no [Resend](https://resend.com) e me
-  passar a chave da API. Com ela eu configuro o envio de e-mail ao
-  abrir/atualizar chamado (como o SGN faz).
+- [ ] **Provedor de e-mail para notificações** — sugestão: criar conta
+  gratuita no [Resend](https://resend.com) e me passar a chave da API. Com
+  ela eu configuro o envio de e-mail ao abrir/atualizar chamado (como o
+  SGN faz), além do convite de equipe (Fase 2) e do aviso pro cliente do
+  portal (Fase 3) — hoje os três ficam só registrados no sistema, sem
+  avisar ninguém por fora.
+- [ ] **Integração WhatsApp** (Fase 4) — precisa de uma decisão de
+  fornecedor antes de eu poder implementar: a API oficial do WhatsApp
+  Business exige homologação com a Meta e normalmente passa por um
+  parceiro (Twilio, Z-API, 360dialog etc.), o que tem custo mensal. Se
+  quiser seguir com isso, me diga qual fornecedor prefere usar.
 
 ## Segurança / higiene
 
@@ -53,6 +60,21 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
 - **Banco compartilhado com o projeto "Tarefas"** — considerar projeto
   Supabase dedicado quando o CRM virar produção séria (migração simples
   enquanto há pouco dado).
+- **Portal do cliente (Fase 3) não convida automaticamente** — hoje, um
+  contato só vira cliente do portal se o e-mail dele já existir em
+  `contacts` *antes* de criar a conta. Cadastrar um contato → avisar a
+  pessoa (por fora) que já pode criar conta no SkCRM com esse e-mail.
+- **Anexos do portal do cliente**: o cliente agora anexa arquivos direto
+  no próprio chamado (mesmo limite de 40 MB da equipe). Só a equipe pode
+  excluir anexos — o cliente só anexa e baixa.
+- **CSV de importação de contatos** (Fase 4) — reconhece automaticamente
+  colunas chamadas `nome`/`name`, `email`, `telefone`/`phone`,
+  `cargo`/`job_title` e `empresa`/`company` (em qualquer ordem). Nomes de
+  empresa que não existirem ainda são criados na hora.
+- **TV Chamados** (`/tv`, Fase 4) — pensada pra abrir numa TV/monitor da
+  sala, atualiza sozinha a cada 30s. Ainda exige login (não é uma tela
+  pública) — se quiser deixá-la sem exigir login toda vez, me avise que
+  eu vejo uma forma de manter a sessão mais longa nessa tela.
 
 ## Concluído (histórico)
 
@@ -60,3 +82,9 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
   contatos/negociações *(03/07/2026)*
 - [x] Fase 2 — organizações/equipe, convites, papéis admin×atendente,
   responsável real nos chamados, página Equipe *(03/07/2026)*
+- [x] Fase 3 — portal do cliente: login próprio, caixas de gestão do lado
+  do cliente, abrir chamado, responder e validar/retornar conclusão
+  *(03/07/2026)*
+- [x] Fase 4 — relatórios, TV Chamados, importação de contatos via CSV,
+  PWA instalável *(03/07/2026)*
+- [x] Anexos do lado do cliente no portal *(04/07/2026)*
