@@ -15,7 +15,8 @@ fluxo de validação · painel de notificações · visual SGN · timeline do
 chamado · filtros avançados · organizações/equipe com papéis admin×atendente
 · portal do cliente (login próprio, abrir/responder/validar chamado) ·
 relatórios (funil, tempo de resolução, produção por pessoa) · TV Chamados ·
-importação de contatos via CSV · PWA instalável.
+importação de contatos via CSV · PWA instalável · notificação por e-mail
+(chamado aberto, nova interação, convite de equipe) via Resend.
 
 ## Pendências imediatas
 
@@ -38,7 +39,7 @@ importação de contatos via CSV · PWA instalável.
 ### Fase 1 — Completar o dia a dia dos chamados ✅
 Objetivo: operar 100% do suporte dentro do SkCRM.
 - [x] Timeline do chamado (linha do tempo de mudanças de status, como no SGN)
-- [ ] Notificação por e-mail ao abrir/atualizar chamado *(depende de provedor de e-mail — ver PENDENCIAS.md)*
+- [x] Notificação por e-mail ao abrir/atualizar chamado (via Resend)
 - [x] Filtros avançados em "Outros chamados": intervalo de datas, tipo, setor
 - [x] Anexos também em contatos e negociações
 

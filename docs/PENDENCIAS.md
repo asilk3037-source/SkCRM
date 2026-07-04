@@ -6,31 +6,30 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
 
 ## Bloqueiam o uso real
 
-- [ ] **Expor o schema `skcrm` na API do Supabase** — Dashboard do projeto
-  → Settings → API → "Exposed schemas" → adicionar `skcrm`. ~2 minutos,
-  manual (o Supabase não permite automatizar). Sem isso o app não conversa
-  com o banco (erro PGRST106). *Bloqueia tudo, inclusive testar qualquer
-  coisa que já foi construída.*
-- [ ] **Publicar o site** — Vercel/Netlify/Cloudflare Pages apontando para
-  a pasta `web/`, com as variáveis do `web/.env.example`. *Bloqueia o
-  programa Windows e o uso fora da sua máquina.*
+- [x] **Expor o schema `skcrm` na API do Supabase** *(04/07/2026)*
+- [x] **Publicar o site** *(04/07/2026)* — no ar em
+  [sk-crm-six.vercel.app](https://sk-crm-six.vercel.app), publicado via
+  Vercel com integração automática ao GitHub (todo push na `main` gera
+  um novo deploy).
 - [ ] **Gerar e testar o instalador Windows** — na sua máquina:
   `cd desktop && npm install && npm start` (testar) e `npm run build:win`
-  (gerar o `.exe`). Depois apontar para a URL publicada em
+  (gerar o `.exe`). Depois apontar para a URL publicada acima em
   Arquivo → Configurar servidor. *A sandbox de desenvolvimento não baixa o
   Electron, então esse teste é seu.*
-- [ ] **Criar sua conta real e validar o fluxo completo** — cadastro →
-  contato → empresa → chamado → responder → resolver → validar e concluir.
-  Com a Fase 2, o cadastro já cria sua organização automaticamente.
+- [x] **Criar sua conta real e validar login** *(04/07/2026)* — falta só
+  rodar o fluxo completo (contato → chamado → responder → resolver →
+  validar e concluir) pra ter certeza de ponta a ponta.
 
 ## Decisões que estão travando funcionalidades
 
-- [ ] **Provedor de e-mail para notificações** — sugestão: criar conta
-  gratuita no [Resend](https://resend.com) e me passar a chave da API. Com
-  ela eu configuro o envio de e-mail ao abrir/atualizar chamado (como o
-  SGN faz), além do convite de equipe (Fase 2) e do aviso pro cliente do
-  portal (Fase 3) — hoje os três ficam só registrados no sistema, sem
-  avisar ninguém por fora.
+- [x] **Provedor de e-mail para notificações** *(04/07/2026)* — configurado
+  com Resend. E-mail automático já funciona para: abertura de chamado,
+  nova interação (staff ↔ cliente) e convite de equipe. **Limitação
+  atual**: sem domínio próprio verificado no Resend, o remetente é
+  `onboarding@resend.dev` e o Resend só entrega pro e-mail dono da conta
+  (o seu). Pra notificar clientes/equipe de verdade, verifique um domínio
+  seu no [painel do Resend](https://resend.com/domains) e me avise pra eu
+  trocar o remetente.
 - [ ] **Integração WhatsApp** (Fase 4) — precisa de uma decisão de
   fornecedor antes de eu poder implementar: a API oficial do WhatsApp
   Business exige homologação com a Meta e normalmente passa por um
@@ -54,9 +53,9 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
   Cada conta existente virou uma organização própria na migração. Convites:
   Equipe → "Convidar por e-mail"; quem já tem conta entra na hora, quem não
   tem entra ao se cadastrar com o e-mail convidado.
-- **Convite não envia e-mail ainda** — o convite fica registrado e ativa no
-  cadastro, mas a pessoa precisa ser avisada por fora (WhatsApp etc.).
-  O envio automático entra junto com o provedor de e-mail acima.
+- **Convite já envia e-mail** *(04/07/2026)* — sujeito à limitação do
+  Resend acima (só chega em caixas verificadas até você configurar um
+  domínio próprio).
 - **Banco compartilhado com o projeto "Tarefas"** — considerar projeto
   Supabase dedicado quando o CRM virar produção séria (migração simples
   enquanto há pouco dado).
@@ -88,3 +87,5 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
 - [x] Fase 4 — relatórios, TV Chamados, importação de contatos via CSV,
   PWA instalável *(03/07/2026)*
 - [x] Anexos do lado do cliente no portal *(04/07/2026)*
+- [x] Notificação por e-mail (chamado aberto, nova interação, convite de
+  equipe) via Resend *(04/07/2026)*

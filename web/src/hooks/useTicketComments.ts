@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { db } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { useOrg } from '../context/OrgContext'
+import { notify } from '../lib/notify'
 import type { TicketComment } from '../types/database'
 
 export function useTicketComments(ticketId: string) {
@@ -34,14 +35,19 @@ export function useTicketComments(ticketId: string) {
     async (body: string, internal = false) => {
       if (!user) throw new Error('Not authenticated')
       if (!org) throw new Error('Nenhuma organização ativa')
-      const { error } = await db.from('ticket_comments').insert({
-        ticket_id: ticketId,
-        owner_id: user.id,
-        org_id: org.id,
-        body,
-        internal,
-      } as never)
+      const { data: comment, error } = await db
+        .from('ticket_comments')
+        .insert({
+          ticket_id: ticketId,
+          owner_id: user.id,
+          org_id: org.id,
+          body,
+          internal,
+        } as never)
+        .select()
+        .single()
       if (error) throw error
+      if (!internal) notify('ticket_comment', (comment as TicketComment).id)
       await refresh()
     },
     [ticketId, user, org, refresh],

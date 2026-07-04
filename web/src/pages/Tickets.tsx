@@ -4,6 +4,7 @@ import { useTickets } from '../hooks/useTickets'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import type { Contact, Company, Ticket, TicketCategory, TicketSector, TicketStatus } from '../types/database'
 import { STATUS_LABEL, STATUS_COLOR, PRIORITY_LABEL, PRIORITY_COLOR, CATEGORY_LABEL, SECTOR_LABEL } from '../lib/ticketMeta'
+import { notify } from '../lib/notify'
 
 const emptyForm = {
   subject: '',
@@ -105,6 +106,7 @@ export function Tickets() {
       category: form.category,
       status: 'aberto',
     })
+    notify('ticket_created', created.id)
     setForm(emptyForm)
     setShowForm(false)
     navigate(`/chamados/${created.id}`)

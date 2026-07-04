@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { db, supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
+import { notify } from '../lib/notify'
 import type { Ticket, TicketComment, TicketAttachment } from '../types/database'
 
 const ATTACHMENTS_BUCKET = 'skcrm-attachments'
@@ -40,6 +41,7 @@ export function usePortalTickets() {
         p_priority: values.priority,
       })
       if (error) throw error
+      notify('ticket_created', data as string)
       await refresh()
       return data as string
     },
@@ -48,8 +50,9 @@ export function usePortalTickets() {
 
   const addComment = useCallback(
     async (ticketId: string, body: string) => {
-      const { error } = await db.rpc('portal_add_comment', { p_ticket: ticketId, p_body: body })
+      const { data, error } = await db.rpc('portal_add_comment', { p_ticket: ticketId, p_body: body })
       if (error) throw error
+      if (data) notify('ticket_comment', data as string)
       await refresh()
     },
     [refresh],
