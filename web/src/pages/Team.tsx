@@ -67,6 +67,7 @@ export function Team() {
   return (
     <div>
       <PageHeader
+        eyebrow="Membros e permissões"
         title="Equipe"
         actions={
           editingName ? (

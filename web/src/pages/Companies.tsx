@@ -96,7 +96,9 @@ export function Companies() {
   return (
     <div>
       <PageHeader
+        eyebrow="Carteira de clientes"
         title="Empresas"
+        description={`${companies.length} empresa(s) cadastrada(s)`}
         actions={
           <Button variant={showForm ? 'secondary' : 'primary'} onClick={() => (showForm ? resetForm() : setShowForm(true))}>
             {showForm ? 'Cancelar' : (
@@ -163,7 +165,10 @@ export function Companies() {
                   {pageItems.map((company) => (
                     <tr key={company.id} className="hover:bg-slate-50/70">
                       <td className="px-4 py-3 font-medium">
-                        <Link to={`/empresas/${company.id}`} className="text-slate-900 hover:text-orange-600 hover:underline">
+                        <Link to={`/empresas/${company.id}`} className="flex items-center gap-2.5 text-slate-900 hover:text-orange-600 hover:underline">
+                          <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                            <IconBuilding className="h-3.5 w-3.5" />
+                          </span>
                           {company.name}
                         </Link>
                       </td>

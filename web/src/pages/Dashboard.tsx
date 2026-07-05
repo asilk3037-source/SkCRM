@@ -7,8 +7,11 @@ import { useTickets } from '../hooks/useTickets'
 import type { Contact, Company, Task, Ticket } from '../types/database'
 import { Card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
+import { Button } from '../components/ui/Button'
+import { Hero, HeroStat } from '../components/ui/Hero'
+import { StatChip, STAT_TONE, type StatTone } from '../components/ui/StatChip'
 import { TicketListModal } from '../components/TicketListModal'
-import { isTerminalStatus, CATEGORY_LABEL } from '../lib/ticketMeta'
+import { isTerminalStatus, CATEGORY_LABEL, timeAgo } from '../lib/ticketMeta'
 import {
   IconUser,
   IconBuilding,
@@ -18,40 +21,17 @@ import {
   IconCheckSquare,
   IconBarChart,
   IconCheckCircle,
+  IconPlus,
 } from '../components/ui/icons'
 
-const STAT_TONE: Record<string, string> = {
-  orange: 'bg-orange-50 text-orange-600',
-  blue: 'bg-blue-50 text-blue-600',
-  emerald: 'bg-emerald-50 text-emerald-600',
-  purple: 'bg-purple-50 text-purple-600',
-}
-
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  tone = 'orange',
-}: {
-  label: string
-  value: number | string
-  icon: typeof IconUser
-  tone?: keyof typeof STAT_TONE
-}) {
-  return (
-    <Card className="flex items-start justify-between gap-3 p-5">
-      <div className="min-w-0">
-        <p className="text-sm text-slate-500">{label}</p>
-        <p className="mt-1 truncate text-xl font-semibold tabular-nums text-slate-900">{value}</p>
-      </div>
-      <span className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${STAT_TONE[tone]}`}>
-        <Icon className="h-5 w-5" />
-      </span>
-    </Card>
-  )
-}
-
 const DAY_MS = 24 * 60 * 60 * 1000
+
+function greeting() {
+  const h = new Date().getHours()
+  if (h < 12) return 'Bom dia'
+  if (h < 18) return 'Boa tarde'
+  return 'Boa noite'
+}
 
 /** 7-day bar sparkline — no charting library, just SVG, kept tiny for a dashboard card. */
 function WeekSparkline({ counts }: { counts: number[] }) {
@@ -85,21 +65,9 @@ interface ActivityItem {
   id: string
   date: string
   icon: typeof IconUser
-  tone: keyof typeof STAT_TONE
+  tone: StatTone
   text: ReactNode
   href: string
-}
-
-function timeAgo(iso: string) {
-  const diffMs = Date.now() - new Date(iso).getTime()
-  const minutes = Math.floor(diffMs / 60000)
-  if (minutes < 1) return 'agora mesmo'
-  if (minutes < 60) return `há ${minutes} min`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `há ${hours}h`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `há ${days}d`
-  return new Date(iso).toLocaleDateString('pt-BR')
 }
 
 function NotificationCard({
@@ -142,6 +110,10 @@ export function Dashboard() {
   const openDeals = deals.filter((d) => d.status === 'open')
   const pipelineValue = openDeals.reduce((sum, d) => sum + Number(d.value), 0)
   const pendingTasks = tasks.filter((t) => !t.done)
+  const todayStr = new Date().toDateString()
+  const tasksDueToday = pendingTasks.filter((t) => t.due_date && new Date(t.due_date).toDateString() === todayStr)
+  const backlog = tickets.filter((t) => t.status === 'backlog')
+  const firstName = (user?.email ?? 'você').split('@')[0].split(/[._]/)[0]
 
   const activeTickets = tickets.filter((t) => !isTerminalStatus(t.status))
   const inProgress = activeTickets.filter(
@@ -227,10 +199,26 @@ export function Dashboard() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight text-slate-900">Painel</h1>
+      <Hero
+        eyebrow={`${greeting()}, ${firstName}`}
+        title="Sua operação hoje"
+        description={`${urgent.length} chamado(s) crítico(s) exigem atenção, ${openDeals.length} negociação(ões) em pipeline e ${tasksDueToday.length} tarefa(s) com vencimento hoje.`}
+        actions={
+          <Link to="/chamados">
+            <Button>
+              <IconPlus className="h-4 w-4" /> Novo chamado
+            </Button>
+          </Link>
+        }
+      >
+        <HeroStat label="Chamados ativos" value={activeTickets.length} />
+        <HeroStat label="Resolvidos (7 dias)" value={concludedThisWeek} />
+        <HeroStat label="Backlog" value={backlog.length} />
+        <HeroStat label="Tarefas pendentes" value={pendingTasks.length} />
+      </Hero>
 
       {/* Notificações/Importantes — SGN-style ticket boxes */}
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Notificações / Importantes</h2>
+      <h2 className="mb-3 mt-8 text-xs font-semibold uppercase tracking-wide text-slate-400">Notificações / Importantes</h2>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <NotificationCard value={inProgress.length} label="Chamados sob sua responsabilidade" onOpen={() => setOpenIndicator('responsibility')} highlight />
         <NotificationCard value={urgent.length} label="Chamados críticos (alta/urgente)" onOpen={() => setOpenIndicator('critical')} />
@@ -242,10 +230,10 @@ export function Dashboard() {
       {/* CRM stats */}
       <h2 className="mb-3 mt-8 text-xs font-semibold uppercase tracking-wide text-slate-400">Visão geral</h2>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Contatos" value={contacts.length} icon={IconUser} tone="blue" />
-        <StatCard label="Empresas" value={companies.length} icon={IconBuilding} tone="blue" />
-        <StatCard label="Negociações em aberto" value={openDeals.length} icon={IconTrendingUp} tone="purple" />
-        <StatCard
+        <StatChip label="Contatos" value={contacts.length} icon={IconUser} tone="blue" />
+        <StatChip label="Empresas" value={companies.length} icon={IconBuilding} tone="blue" />
+        <StatChip label="Negociações em aberto" value={openDeals.length} icon={IconTrendingUp} tone="purple" />
+        <StatChip
           label="Valor em pipeline"
           value={pipelineValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           icon={IconInbox}

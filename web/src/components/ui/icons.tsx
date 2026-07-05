@@ -244,3 +244,57 @@ export function IconChevronDown(props: IconProps) {
     </Svg>
   )
 }
+
+export function IconGlobe(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c2.5 2.5 3.8 5.7 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.7-3.8-9S9.5 5.5 12 3Z" />
+    </Svg>
+  )
+}
+
+export function IconPhone(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M5.5 4h3l1.5 4-2 1.5a11 11 0 0 0 5.5 5.5l1.5-2 4 1.5v3c0 1-.9 1.8-1.9 1.6C10.5 18.5 5.5 13.5 3.9 6.9 3.7 5.9 4.5 5 5.5 4Z" />
+    </Svg>
+  )
+}
+
+export function IconMapPin(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 21s7-6.6 7-11.5a7 7 0 1 0-14 0C5 14.4 12 21 12 21Z" />
+      <circle cx="12" cy="9.5" r="2.3" />
+    </Svg>
+  )
+}
+
+export function IconFileText(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+      <path d="M14 3v4h4M8.5 12h7M8.5 15.5h7M8.5 8.5h3" />
+    </Svg>
+  )
+}
+
+export function IconClock(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5.5l3.5 2" />
+    </Svg>
+  )
+}
+
+export function IconMoreHorizontal(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="5" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="1.2" fill="currentColor" stroke="none" />
+    </Svg>
+  )
+}

@@ -18,15 +18,25 @@ import {
   IconX,
 } from './ui/icons'
 
-const links = [
-  { to: '/', label: 'Painel', end: true, icon: IconHome },
-  { to: '/contatos', label: 'Contatos', icon: IconUser },
-  { to: '/empresas', label: 'Empresas', icon: IconBuilding },
-  { to: '/negociacoes', label: 'Negociações', icon: IconTrendingUp },
-  { to: '/chamados', label: 'Chamados', icon: IconInbox },
-  { to: '/tarefas', label: 'Tarefas', icon: IconCheckSquare },
-  { to: '/relatorios', label: 'Relatórios', icon: IconBarChart },
-  { to: '/equipe', label: 'Equipe', icon: IconUsers },
+const linkGroups: Array<{ label: string; links: Array<{ to: string; label: string; end?: boolean; icon: typeof IconHome }> }> = [
+  {
+    label: 'Geral',
+    links: [
+      { to: '/', label: 'Painel', end: true, icon: IconHome },
+      { to: '/contatos', label: 'Contatos', icon: IconUser },
+      { to: '/empresas', label: 'Empresas', icon: IconBuilding },
+      { to: '/negociacoes', label: 'Negociações', icon: IconTrendingUp },
+      { to: '/chamados', label: 'Chamados', icon: IconInbox },
+      { to: '/tarefas', label: 'Tarefas', icon: IconCheckSquare },
+    ],
+  },
+  {
+    label: 'Análises',
+    links: [
+      { to: '/relatorios', label: 'Relatórios', icon: IconBarChart },
+      { to: '/equipe', label: 'Equipe', icon: IconUsers },
+    ],
+  },
 ]
 
 const BREADCRUMB: Array<{ prefix: string; label: string }> = [
@@ -66,22 +76,29 @@ export function Layout() {
           <IconX className="h-5 w-5" />
         </button>
       </div>
-      <nav className="flex-1 space-y-0.5 px-3">
-        {links.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            end={link.end}
-            onClick={() => setSidebarOpen(false)}
-            className={({ isActive }) =>
-              `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                isActive ? 'bg-orange-600 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
-              }`
-            }
-          >
-            <link.icon className="h-4 w-4 flex-shrink-0" />
-            {link.label}
-          </NavLink>
+      <nav className="flex-1 space-y-4 px-3">
+        {linkGroups.map((group) => (
+          <div key={group.label}>
+            <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{group.label}</p>
+            <div className="space-y-0.5">
+              {group.links.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  end={link.end}
+                  onClick={() => setSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive ? 'bg-orange-600 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                    }`
+                  }
+                >
+                  <link.icon className="h-4 w-4 flex-shrink-0" />
+                  {link.label}
+                </NavLink>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
       <div className="px-3 py-2">

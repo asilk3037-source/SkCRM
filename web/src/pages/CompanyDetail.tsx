@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import { useOrg } from '../context/OrgContext'
@@ -17,13 +17,34 @@ import { Alert } from '../components/ui/Alert'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageLoading } from '../components/ui/Spinner'
 import { DataCard, DataCardRow } from '../components/ui/DataCard'
-import { IconBuilding, IconInbox, IconPlus, IconUser } from '../components/ui/icons'
+import { Avatar } from '../components/ui/Avatar'
+import { Hero } from '../components/ui/Hero'
+import { StatChip } from '../components/ui/StatChip'
+import {
+  IconBuilding,
+  IconInbox,
+  IconPlus,
+  IconUser,
+  IconGlobe,
+  IconPhone,
+  IconMapPin,
+  IconFileText,
+  IconClock,
+  IconCheckCircle,
+  IconUsers,
+} from '../components/ui/icons'
 
-function Metric({ label, value }: { label: string; value: number }) {
+function InfoRow({ icon: Icon, label, value }: { icon: typeof IconGlobe; label: string; value: ReactNode }) {
+  if (!value) return null
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <p className="text-2xl font-semibold tabular-nums text-slate-900">{value}</p>
-      <p className="mt-0.5 text-xs text-slate-500">{label}</p>
+    <div className="flex items-start gap-3">
+      <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+        <div className="mt-0.5 break-words text-sm text-slate-700">{value}</div>
+      </div>
     </div>
   )
 }
@@ -108,38 +129,38 @@ export function CompanyDetail() {
         </Link>
       </div>
 
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
-            <IconBuilding className="h-5 w-5" />
+      <Hero
+        icon={
+          <span className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-white/10 text-orange-400">
+            <IconBuilding className="h-6 w-6" />
           </span>
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">{company.name}</h1>
-            <p className="text-sm text-slate-500">Painel administrativo da empresa</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => navigate(`/chamados?empresa=${company.id}`)}>
-            <IconPlus className="h-4 w-4" /> Abrir chamado interno
-          </Button>
-          {canEdit && (
-            <Button variant="secondary" onClick={() => (editing ? setEditing(false) : startEdit())}>
-              {editing ? 'Cancelar' : 'Editar dados'}
+        }
+        title={company.name}
+        description="Painel administrativo da empresa"
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => navigate(`/chamados?empresa=${company.id}`)}>
+              <IconPlus className="h-4 w-4" /> Abrir chamado interno
             </Button>
-          )}
-          {canDelete && (
-            <Button variant="danger" onClick={handleDelete}>
-              Excluir empresa
-            </Button>
-          )}
-        </div>
-      </div>
+            {canEdit && (
+              <Button variant="secondary" onClick={() => (editing ? setEditing(false) : startEdit())}>
+                {editing ? 'Cancelar' : 'Editar dados'}
+              </Button>
+            )}
+            {canDelete && (
+              <Button variant="danger" onClick={handleDelete}>
+                Excluir empresa
+              </Button>
+            )}
+          </>
+        }
+      />
 
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Metric label="Chamados no total" value={companyTickets.length} />
-        <Metric label="Em aberto" value={openTickets.length} />
-        <Metric label="Concluídos" value={closedTickets.length} />
-        <Metric label="Contatos vinculados" value={companyContacts.length} />
+      <div className="mb-6 mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatChip label="Chamados no total" value={companyTickets.length} icon={IconInbox} tone="orange" />
+        <StatChip label="Em aberto" value={openTickets.length} icon={IconClock} tone="blue" />
+        <StatChip label="Concluídos" value={closedTickets.length} icon={IconCheckCircle} tone="emerald" />
+        <StatChip label="Contatos vinculados" value={companyContacts.length} icon={IconUsers} tone="purple" />
       </div>
 
       <Card className="mb-6">
@@ -171,31 +192,23 @@ export function CompanyDetail() {
             </div>
           </form>
         ) : (
-          <div className="grid grid-cols-1 gap-x-6 gap-y-3 p-5 text-sm sm:grid-cols-2">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Website</p>
-              <p className="mt-0.5 text-slate-700">
-                {company.website ? (
+          <div className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2">
+            <InfoRow
+              icon={IconGlobe}
+              label="Website"
+              value={
+                company.website ? (
                   <a href={company.website} target="_blank" rel="noreferrer" className="text-orange-600 hover:underline">
                     {company.website.replace(/^https?:\/\//, '')}
                   </a>
                 ) : (
                   '—'
-                )}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Telefone</p>
-              <p className="mt-0.5 text-slate-700">{company.phone || '—'}</p>
-            </div>
-            <div className="sm:col-span-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Endereço</p>
-              <p className="mt-0.5 text-slate-700">{company.address || '—'}</p>
-            </div>
-            <div className="sm:col-span-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Notas</p>
-              <p className="mt-0.5 whitespace-pre-wrap text-slate-700">{company.notes || '—'}</p>
-            </div>
+                )
+              }
+            />
+            <InfoRow icon={IconPhone} label="Telefone" value={company.phone || '—'} />
+            <InfoRow icon={IconMapPin} label="Endereço" value={company.address || '—'} />
+            <InfoRow icon={IconFileText} label="Notas" value={<span className="whitespace-pre-wrap">{company.notes || '—'}</span>} />
           </div>
         )}
       </Card>
@@ -213,6 +226,7 @@ export function CompanyDetail() {
           <ul className="divide-y divide-slate-100">
             {companyContacts.map((c) => (
               <li key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
+                <Avatar name={c.name} size="sm" />
                 <span className="font-medium text-slate-900">{c.name}</span>
                 {c.job_title && <span className="text-xs text-slate-400">{c.job_title}</span>}
                 <span className="ml-auto text-slate-500">{c.email || '—'}</span>

@@ -53,6 +53,7 @@ export function Tasks() {
   return (
     <div>
       <PageHeader
+        eyebrow="Sua agenda"
         title="Tarefas"
         actions={
           <Button variant={showForm ? 'secondary' : 'primary'} onClick={() => setShowForm((v) => !v)}>

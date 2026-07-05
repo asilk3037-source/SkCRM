@@ -18,6 +18,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { PageLoading } from '../components/ui/Spinner'
 import { LoadError } from '../components/ui/LoadError'
 import { DataCard, DataCardRow } from '../components/ui/DataCard'
+import { Avatar } from '../components/ui/Avatar'
 import { Pagination, paginate } from '../components/ui/Pagination'
 import { IconDownload, IconPaperclip, IconPlus, IconUser } from '../components/ui/icons'
 
@@ -120,7 +121,9 @@ export function Contacts() {
   return (
     <div>
       <PageHeader
+        eyebrow="Base de relacionamento"
         title="Contatos"
+        description={`${contacts.length} contato(s) cadastrado(s)`}
         actions={
           <>
             <Button variant="secondary" onClick={handleExport} disabled={contacts.length === 0}>
@@ -205,7 +208,12 @@ export function Contacts() {
                 <tbody className="divide-y divide-slate-100">
                   {pageItems.map((contact) => (
                     <tr key={contact.id} className="hover:bg-slate-50/70">
-                      <td className="px-4 py-3 font-medium text-slate-900">{contact.name}</td>
+                      <td className="px-4 py-3 font-medium text-slate-900">
+                        <div className="flex items-center gap-2.5">
+                          <Avatar name={contact.name} size="sm" />
+                          {contact.name}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-slate-600">{companyName(contact.company_id)}</td>
                       <td className="px-4 py-3 text-slate-600">{contact.email || '—'}</td>
                       <td className="px-4 py-3 text-slate-600">{contact.phone || '—'}</td>
@@ -236,7 +244,12 @@ export function Contacts() {
             {pageItems.map((contact) => (
               <DataCard
                 key={contact.id}
-                title={contact.name}
+                title={
+                  <span className="flex items-center gap-2">
+                    <Avatar name={contact.name} size="sm" />
+                    {contact.name}
+                  </span>
+                }
                 actions={
                   <>
                     <Button variant="ghost" size="xs" onClick={() => setAttachFor(contact)}>

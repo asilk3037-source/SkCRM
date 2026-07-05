@@ -194,6 +194,7 @@ export function Tickets() {
   return (
     <div>
       <PageHeader
+        eyebrow="Central de atendimento"
         title="Chamados"
         description="Acompanhe seus chamados pelas caixas abaixo — cada uma mostra com quem está a próxima ação."
         actions={

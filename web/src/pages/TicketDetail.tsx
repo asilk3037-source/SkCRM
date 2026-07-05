@@ -19,7 +19,17 @@ import type {
   TicketCategory,
   TicketSector,
 } from '../types/database'
-import { STATUS_LABEL, STATUS_TONE, PRIORITY_LABEL, CATEGORY_LABEL, SECTOR_LABEL, formatBytes, isTerminalStatus } from '../lib/ticketMeta'
+import {
+  STATUS_LABEL,
+  STATUS_TONE,
+  PRIORITY_LABEL,
+  PRIORITY_TONE,
+  CATEGORY_LABEL,
+  SECTOR_LABEL,
+  formatBytes,
+  isTerminalStatus,
+  timeAgo,
+} from '../lib/ticketMeta'
 import { MAX_COMMENT_LENGTH } from '../lib/validators'
 import { notify } from '../lib/notify'
 import { Button } from '../components/ui/Button'
@@ -30,6 +40,7 @@ import { Alert } from '../components/ui/Alert'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageLoading } from '../components/ui/Spinner'
 import { Modal } from '../components/ui/Modal'
+import { Hero } from '../components/ui/Hero'
 import { useToast } from '../components/ToastProvider'
 import { IconArrowRight, IconCheck, IconCornerUpLeft, IconPaperclip } from '../components/ui/icons'
 
@@ -363,31 +374,44 @@ export function TicketDetail() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4">
         <Link to="/chamados" className="text-sm text-slate-500 hover:text-slate-900">
           ← Voltar para chamados
         </Link>
-        {canDelete && (
-          <Button variant="danger" size="sm" onClick={handleDelete}>
-            Excluir chamado
-          </Button>
-        )}
       </div>
 
-      {/* Header — SGN style */}
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight text-slate-900">
-          Chamado <span className="text-orange-600">#{ticket.number}</span> aberto por {requester}
-          {company && contact ? ` (${company.name})` : ''}
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {contact?.phone || company?.phone ? `${contact?.phone ?? company?.phone} · ` : ''}
-          {contact?.email ?? ''}
-        </p>
-      </div>
+      <Hero
+        badges={
+          <>
+            <Badge className="!bg-white/10 !text-white">#{ticket.number}</Badge>
+            <Badge tone={PRIORITY_TONE[ticket.priority]}>{PRIORITY_LABEL[ticket.priority]}</Badge>
+            <Badge tone={STATUS_TONE[ticket.status]}>{STATUS_LABEL[ticket.status]}</Badge>
+            <Badge className="!bg-white/10 !text-white">{CATEGORY_LABEL[ticket.category]}</Badge>
+          </>
+        }
+        title={ticket.subject}
+        description={
+          <>
+            {requester}
+            {company && contact ? ` · ${company.name}` : ''} · Aberto {timeAgo(ticket.created_at)}
+          </>
+        }
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setShowForward(true)}>
+              <IconArrowRight className="h-4 w-4" /> Encaminhar
+            </Button>
+            {canDelete && (
+              <Button variant="danger" onClick={handleDelete}>
+                Excluir chamado
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {/* Dados da empresa — like SGN's company block */}
-      <Card className="mb-6 overflow-hidden">
+      <Card className="mb-6 mt-6 overflow-hidden">
         <CardHeader>Dados da empresa</CardHeader>
         <div className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-5">
           <InfoField label="Empresa" value={<span className="font-medium text-emerald-600">{company?.name ?? '—'}</span>} />

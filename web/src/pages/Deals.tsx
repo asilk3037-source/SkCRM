@@ -84,6 +84,7 @@ export function Deals() {
   return (
     <div>
       <PageHeader
+        eyebrow="Funil de vendas"
         title="Negociações"
         actions={
           <Button variant={showForm ? 'secondary' : 'primary'} onClick={() => setShowForm((v) => !v)}>

@@ -77,6 +77,7 @@ export function Portal() {
   return (
     <PortalLayout>
       <PageHeader
+        eyebrow="Portal do cliente"
         title="Meus chamados"
         description="Estamos aguardando seu retorno nos chamados listados nas caixas abaixo."
         actions={
