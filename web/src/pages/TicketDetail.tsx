@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type FormEvent } from 'react'
+import { useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useTickets } from '../hooks/useTickets'
 import { useTicketComments } from '../hooks/useTicketComments'
@@ -30,6 +30,7 @@ import { Alert } from '../components/ui/Alert'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageLoading } from '../components/ui/Spinner'
 import { Modal } from '../components/ui/Modal'
+import { useToast } from '../components/ToastProvider'
 import { IconArrowRight, IconCheck, IconCornerUpLeft, IconPaperclip } from '../components/ui/icons'
 
 /** Turns "aberto -> resolvido" into "Aberto → Resolvido" using the label maps. */
@@ -48,6 +49,16 @@ function formatForward(detail: string | null) {
   const [sector, ...rest] = detail.split(' / ')
   const label = (SECTOR_LABEL as Record<string, string>)[sector] ?? sector
   return [label, ...rest].join(' / ')
+}
+
+/** Label-over-value block for the ticket/company info panels — reflows in a grid instead of scrolling like a 1-row table would. */
+function InfoField({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+      <div className="mt-1 break-words text-sm text-slate-700">{value}</div>
+    </div>
+  )
 }
 
 function InteractionThread({
@@ -217,6 +228,7 @@ export function TicketDetail() {
   const confirm = useConfirm()
   const canDelete = can(role, 'tickets', 'delete')
   const { data: tickets, loading, update, remove } = useTickets()
+  const toast = useToast()
   const { data: contacts } = useSupabaseTable<Contact>('contacts', 'name')
   const { data: companies } = useSupabaseTable<Company>('companies', 'name')
   const [showForward, setShowForward] = useState(false)
@@ -301,6 +313,12 @@ export function TicketDetail() {
     navigate('/chamados')
   }
 
+  function changeStatus(status: TicketStatus) {
+    if (!ticket) return
+    update(ticket.id, { status })
+    toast(`Status alterado para "${STATUS_LABEL[status]}".`)
+  }
+
   const memberOptions = members.map((m) => ({
     user_id: m.user_id,
     label: m.profile?.display_name ?? m.profile?.email ?? m.user_id,
@@ -371,129 +389,105 @@ export function TicketDetail() {
       {/* Dados da empresa — like SGN's company block */}
       <Card className="mb-6 overflow-hidden">
         <CardHeader>Dados da empresa</CardHeader>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase tracking-wide text-slate-400">
-              <tr>
-                <th className="px-4 pt-3 pb-1 font-medium">Empresa</th>
-                <th className="px-4 pt-3 pb-1 font-medium">Solicitante</th>
-                <th className="px-4 pt-3 pb-1 font-medium">Cargo</th>
-                <th className="px-4 pt-3 pb-1 font-medium">E-mail</th>
-                <th className="px-4 pt-3 pb-1 font-medium">Telefone</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="px-4 pt-1 pb-3 font-medium text-emerald-600">{company?.name ?? '—'}</td>
-                <td className="px-4 pt-1 pb-3 text-slate-700">{contact?.name ?? '—'}</td>
-                <td className="px-4 pt-1 pb-3 text-slate-600">{contact?.job_title || '—'}</td>
-                <td className="px-4 pt-1 pb-3 text-slate-600">{contact?.email || '—'}</td>
-                <td className="px-4 pt-1 pb-3 text-slate-600">{contact?.phone || company?.phone || '—'}</td>
-              </tr>
-            </tbody>
-          </table>
+        <div className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-5">
+          <InfoField label="Empresa" value={<span className="font-medium text-emerald-600">{company?.name ?? '—'}</span>} />
+          <InfoField label="Solicitante" value={contact?.name ?? '—'} />
+          <InfoField label="Cargo" value={contact?.job_title || '—'} />
+          <InfoField label="E-mail" value={contact?.email || '—'} />
+          <InfoField label="Telefone" value={contact?.phone || company?.phone || '—'} />
         </div>
       </Card>
 
       {/* Dados do chamado */}
       <Card className="mb-6 overflow-hidden">
         <CardHeader>Dados do chamado</CardHeader>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase tracking-wide text-slate-400">
-              <tr>
-                <th className="px-4 pt-3 pb-1 font-medium">Nº</th>
-                <th className="px-4 pt-3 pb-1 font-medium">Tipo</th>
-                <th className="px-4 pt-3 pb-1 font-medium">Prioridade</th>
-                <th className="px-4 pt-3 pb-1 font-medium">Status</th>
-                <th className="px-4 pt-3 pb-1 font-medium">Setor</th>
-                <th className="px-4 pt-3 pb-1 font-medium">Responsável</th>
-                <th className="px-4 pt-3 pb-1 font-medium">Abertura</th>
-                <th className="px-4 pt-3 pb-1 font-medium">Atualização</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="px-4 pt-1 pb-3 font-semibold text-orange-600">#{ticket.number}</td>
-                <td className="px-4 pt-1 pb-3">
-                  <Select
-                    value={ticket.category}
-                    onChange={(e) => update(ticket.id, { category: e.target.value as TicketCategory })}
-                    className="!w-auto !py-1"
-                  >
-                    {Object.entries(CATEGORY_LABEL).map(([value, label]) => (
+        <div className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-4">
+          <InfoField label="Nº" value={<span className="font-semibold text-orange-600">#{ticket.number}</span>} />
+          <InfoField
+            label="Tipo"
+            value={
+              <Select
+                value={ticket.category}
+                onChange={(e) => update(ticket.id, { category: e.target.value as TicketCategory })}
+                className="!w-auto !py-1"
+              >
+                {Object.entries(CATEGORY_LABEL).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+            }
+          />
+          <InfoField
+            label="Prioridade"
+            value={
+              <Select
+                value={ticket.priority}
+                onChange={(e) => update(ticket.id, { priority: e.target.value as TicketPriority })}
+                className="!w-auto !py-1"
+              >
+                {Object.entries(PRIORITY_LABEL).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+            }
+          />
+          <InfoField
+            label="Status"
+            value={
+              isConcluido ? (
+                <Badge tone={STATUS_TONE.concluido}>{STATUS_LABEL.concluido}</Badge>
+              ) : (
+                <Select
+                  value={ticket.status}
+                  onChange={(e) => changeStatus(e.target.value as TicketStatus)}
+                  className="!w-auto !py-1"
+                >
+                  {/* "Concluído" não aparece aqui de propósito — só o cliente pode concluir o chamado, pelo portal dele. */}
+                  {Object.entries(STATUS_LABEL)
+                    .filter(([value]) => value !== 'concluido')
+                    .map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
                       </option>
                     ))}
-                  </Select>
-                </td>
-                <td className="px-4 pt-1 pb-3">
-                  <Select
-                    value={ticket.priority}
-                    onChange={(e) => update(ticket.id, { priority: e.target.value as TicketPriority })}
-                    className="!w-auto !py-1"
-                  >
-                    {Object.entries(PRIORITY_LABEL).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </Select>
-                </td>
-                <td className="px-4 pt-1 pb-3">
-                  {isConcluido ? (
-                    <Badge tone={STATUS_TONE.concluido}>{STATUS_LABEL.concluido}</Badge>
-                  ) : (
-                    <Select
-                      value={ticket.status}
-                      onChange={(e) => update(ticket.id, { status: e.target.value as TicketStatus })}
-                      className="!w-auto !py-1"
-                    >
-                      {/* "Concluído" não aparece aqui de propósito — só o cliente pode concluir o chamado, pelo portal dele. */}
-                      {Object.entries(STATUS_LABEL)
-                        .filter(([value]) => value !== 'concluido')
-                        .map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
-                    </Select>
-                  )}
-                </td>
-                <td className="px-4 pt-1 pb-3 text-slate-700">{SECTOR_LABEL[ticket.sector]}</td>
-                <td className="px-4 pt-1 pb-3 text-slate-700">{memberLabel(ticket.assignee_id) ?? ticket.assignee ?? '—'}</td>
-                <td className="px-4 pt-1 pb-3 text-slate-600">{new Date(ticket.created_at).toLocaleString('pt-BR')}</td>
-                <td className="px-4 pt-1 pb-3 text-slate-600">{new Date(ticket.updated_at).toLocaleString('pt-BR')}</td>
-              </tr>
-            </tbody>
-          </table>
+                </Select>
+              )
+            }
+          />
+          <InfoField label="Setor" value={SECTOR_LABEL[ticket.sector]} />
+          <InfoField label="Responsável" value={memberLabel(ticket.assignee_id) ?? ticket.assignee ?? '—'} />
+          <InfoField label="Abertura" value={new Date(ticket.created_at).toLocaleString('pt-BR')} />
+          <InfoField label="Atualização" value={new Date(ticket.updated_at).toLocaleString('pt-BR')} />
         </div>
         {/* Action bar — segue o fluxo Analisar → Em andamento → Aberto/Backlog → Em andamento → Teste → Aguardando validação */}
         <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 bg-slate-50/60 px-4 py-2.5">
           {isAnalisar && (
-            <Button size="sm" onClick={() => update(ticket.id, { status: 'em_andamento' })}>
+            <Button size="sm" onClick={() => changeStatus('em_andamento')}>
               Iniciar análise
             </Button>
           )}
           {isAberto && (
-            <Button size="sm" onClick={() => update(ticket.id, { status: 'em_andamento' })}>
+            <Button size="sm" onClick={() => changeStatus('em_andamento')}>
               Iniciar atendimento
             </Button>
           )}
           {isEmAndamento && (
             <>
-              <Button size="sm" variant="secondary" onClick={() => update(ticket.id, { status: 'matriz_decisao' })}>
+              <Button size="sm" variant="secondary" onClick={() => changeStatus('matriz_decisao')}>
                 Encaminhar para matriz de decisão
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => update(ticket.id, { status: 'aberto' })}>
+              <Button size="sm" variant="secondary" onClick={() => changeStatus('aberto')}>
                 Encaminhar para técnico
               </Button>
               <span className="mx-1 h-4 w-px bg-slate-300" />
-              <Button size="sm" onClick={() => update(ticket.id, { status: 'teste' })}>
+              <Button size="sm" onClick={() => changeStatus('teste')}>
                 Enviar para teste
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => update(ticket.id, { status: 'teste_prioritario' })}>
+              <Button size="sm" variant="secondary" onClick={() => changeStatus('teste_prioritario')}>
                 Enviar para teste prioritário
               </Button>
             </>
@@ -502,10 +496,10 @@ export function TicketDetail() {
             <>
               {canResolveMatrix ? (
                 <>
-                  <Button size="sm" onClick={() => update(ticket.id, { status: 'backlog' })}>
+                  <Button size="sm" onClick={() => changeStatus('backlog')}>
                     Enviar para Backlog (customização)
                   </Button>
-                  <Button size="sm" variant="secondary" onClick={() => update(ticket.id, { status: 'aberto' })}>
+                  <Button size="sm" variant="secondary" onClick={() => changeStatus('aberto')}>
                     Encaminhar para técnico
                   </Button>
                 </>
@@ -518,21 +512,22 @@ export function TicketDetail() {
             <>
               <Button
                 size="sm"
-                className="!bg-emerald-600 hover:!bg-emerald-700"
+                variant="success"
                 onClick={async () => {
                   await update(ticket.id, { status: 'aguardando_validacao' })
+                  toast('Chamado enviado para validação do cliente.')
                   notify('ticket_resolved', ticket.id)
                 }}
               >
                 <IconCheck className="h-3.5 w-3.5" /> Teste concluído — aguardar validação
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => update(ticket.id, { status: 'em_andamento' })}>
+              <Button variant="secondary" size="sm" onClick={() => changeStatus('em_andamento')}>
                 <IconCornerUpLeft className="h-3.5 w-3.5" /> Reprovado no teste, voltar para atendimento
               </Button>
             </>
           )}
           {isBacklog && (
-            <Button size="sm" onClick={() => update(ticket.id, { status: 'aberto' })}>
+            <Button size="sm" onClick={() => changeStatus('aberto')}>
               Encaminhar para atendimento
             </Button>
           )}
@@ -541,23 +536,23 @@ export function TicketDetail() {
               <span className="flex items-center gap-1.5 text-xs font-medium text-amber-700">
                 <IconCheck className="h-3.5 w-3.5" /> Aguardando o cliente confirmar a conclusão
               </span>
-              <Button variant="secondary" size="sm" onClick={() => update(ticket.id, { status: 'em_andamento' })}>
+              <Button variant="secondary" size="sm" onClick={() => changeStatus('em_andamento')}>
                 <IconCornerUpLeft className="h-3.5 w-3.5" /> Retornar (não resolvido)
               </Button>
             </>
           )}
           {(isPendenteCliente || isPendenteFornecedor) && (
-            <Button variant="secondary" size="sm" onClick={() => update(ticket.id, { status: 'em_andamento' })}>
+            <Button variant="secondary" size="sm" onClick={() => changeStatus('em_andamento')}>
               <IconCornerUpLeft className="h-3.5 w-3.5" /> Retomar atendimento
             </Button>
           )}
           {isCancelado && (
-            <Button variant="secondary" size="sm" onClick={() => update(ticket.id, { status: 'analisar' })}>
+            <Button variant="secondary" size="sm" onClick={() => changeStatus('analisar')}>
               Reabrir chamado
             </Button>
           )}
           {isConcluido && (
-            <Button variant="secondary" size="sm" onClick={() => update(ticket.id, { status: 'analisar' })}>
+            <Button variant="secondary" size="sm" onClick={() => changeStatus('analisar')}>
               Reabrir chamado
             </Button>
           )}
@@ -566,16 +561,16 @@ export function TicketDetail() {
             <>
               <span className="mx-1 h-4 w-px bg-slate-300" />
               {!isPendenteCliente && (
-                <Button variant="ghost" size="sm" onClick={() => update(ticket.id, { status: 'pendente_cliente' })}>
+                <Button variant="ghost" size="sm" onClick={() => changeStatus('pendente_cliente')}>
                   Aguardar cliente
                 </Button>
               )}
               {!isPendenteFornecedor && (
-                <Button variant="ghost" size="sm" onClick={() => update(ticket.id, { status: 'pendente_fornecedor' })}>
+                <Button variant="ghost" size="sm" onClick={() => changeStatus('pendente_fornecedor')}>
                   Aguardar fornecedor
                 </Button>
               )}
-              <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" onClick={() => update(ticket.id, { status: 'cancelado' })}>
+              <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" onClick={() => changeStatus('cancelado')}>
                 Cancelar chamado
               </Button>
             </>

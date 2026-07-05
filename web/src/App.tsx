@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { OrgProvider } from './context/OrgContext'
 import { ConfirmProvider } from './components/ConfirmDialog'
+import { ToastProvider } from './components/ToastProvider'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Layout } from './components/Layout'
 import { Login } from './pages/Login'
@@ -32,6 +33,7 @@ function LazyPage({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <AuthProvider>
+      <ToastProvider>
       <ConfirmProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -184,6 +186,7 @@ function App() {
           </Route>
         </Routes>
       </ConfirmProvider>
+      </ToastProvider>
     </AuthProvider>
   )
 }

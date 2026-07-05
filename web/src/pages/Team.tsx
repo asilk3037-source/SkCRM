@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useOrg } from '../context/OrgContext'
 import { useConfirm } from '../components/ConfirmDialog'
+import { useToast } from '../components/ToastProvider'
 import type { OrgRole } from '../types/database'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Button } from '../components/ui/Button'
@@ -10,6 +11,8 @@ import { FieldGroup, Input, Select } from '../components/ui/Field'
 import { Badge } from '../components/ui/Badge'
 import { Alert } from '../components/ui/Alert'
 import { PageLoading } from '../components/ui/Spinner'
+import { Avatar } from '../components/ui/Avatar'
+import { DataCard, DataCardRow } from '../components/ui/DataCard'
 
 const ROLE_LABEL: Record<OrgRole, string> = { admin: 'Administrador', supervisor: 'Supervisor', suporte: 'Suporte' }
 
@@ -17,6 +20,7 @@ export function Team() {
   const { user } = useAuth()
   const { org, members, invites, isAdmin, invite, removeMember, setMemberRole, cancelInvite, renameOrg } = useOrg()
   const confirm = useConfirm()
+  const toast = useToast()
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<OrgRole>('suporte')
   const [error, setError] = useState<string | null>(null)
@@ -29,6 +33,7 @@ export function Team() {
     try {
       await invite(email, role)
       setEmail('')
+      toast('Convite enviado.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível convidar')
     }
@@ -36,16 +41,25 @@ export function Team() {
 
   async function handleRename(e: FormEvent) {
     e.preventDefault()
-    if (orgName.trim()) await renameOrg(orgName.trim())
+    if (orgName.trim()) {
+      await renameOrg(orgName.trim())
+      toast('Organização renomeada.')
+    }
     setEditingName(false)
   }
 
   async function handleRemoveMember(memberUserId: string, label: string) {
-    if (await confirm({ description: `Remover ${label} da equipe?` })) removeMember(memberUserId)
+    if (await confirm({ description: `Remover ${label} da equipe?` })) {
+      await removeMember(memberUserId)
+      toast('Membro removido da equipe.')
+    }
   }
 
   async function handleCancelInvite(inviteId: string, inviteEmail: string) {
-    if (await confirm({ tone: 'default', description: `Cancelar o convite para ${inviteEmail}?` })) cancelInvite(inviteId)
+    if (await confirm({ tone: 'default', description: `Cancelar o convite para ${inviteEmail}?` })) {
+      await cancelInvite(inviteId)
+      toast('Convite cancelado.')
+    }
   }
 
   if (!org) return <PageLoading label="Carregando equipe..." />
@@ -123,16 +137,14 @@ export function Team() {
             <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">{members.length}</span>
           </div>
         </CardHeader>
-        <div className="overflow-x-auto">
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full text-left text-sm">
             <tbody className="divide-y divide-slate-100">
               {members.map((member) => (
                 <tr key={member.user_id} className="hover:bg-slate-50/70">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
-                      <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-orange-600 text-xs font-bold text-white">
-                        {(member.profile?.display_name ?? member.profile?.email ?? '?').slice(0, 1).toUpperCase()}
-                      </span>
+                      <Avatar name={member.profile?.display_name ?? member.profile?.email ?? '?'} size="sm" />
                       <span className="font-medium text-slate-900">
                         {member.profile?.display_name ?? member.profile?.email}
                       </span>
@@ -170,6 +182,46 @@ export function Team() {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="space-y-3 p-3 sm:hidden">
+          {members.map((member) => (
+            <DataCard
+              key={member.user_id}
+              title={
+                <span className="flex items-center gap-2.5">
+                  <Avatar name={member.profile?.display_name ?? member.profile?.email ?? '?'} size="sm" />
+                  {member.profile?.display_name ?? member.profile?.email}
+                  {member.user_id === user?.id && <span className="text-xs font-normal text-slate-400">(você)</span>}
+                </span>
+              }
+              badge={!isAdmin || member.user_id === user?.id ? <Badge>{ROLE_LABEL[member.role]}</Badge> : undefined}
+              actions={
+                isAdmin && member.user_id !== user?.id ? (
+                  <>
+                    <Select
+                      value={member.role}
+                      onChange={(e) => setMemberRole(member.user_id, e.target.value as OrgRole)}
+                      className="!w-auto !py-1"
+                    >
+                      <option value="suporte">Suporte</option>
+                      <option value="supervisor">Supervisor</option>
+                      <option value="admin">Administrador</option>
+                    </Select>
+                    <Button
+                      variant="danger"
+                      size="xs"
+                      className="ml-auto"
+                      onClick={() => handleRemoveMember(member.user_id, member.profile?.display_name ?? member.profile?.email ?? 'este membro')}
+                    >
+                      Remover
+                    </Button>
+                  </>
+                ) : undefined
+              }
+            >
+              <DataCardRow label="E-mail" value={member.profile?.email} />
+            </DataCard>
+          ))}
         </div>
       </Card>
 

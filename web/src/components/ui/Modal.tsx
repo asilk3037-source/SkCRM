@@ -17,12 +17,12 @@ export function Modal({
   const maxWidth = size === 'sm' ? 'max-w-sm' : size === 'lg' ? 'max-w-2xl' : 'max-w-lg'
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[2px] animate-[fade-in_0.15s_ease-out]"
       onClick={onClose}
       role="presentation"
     >
       <div
-        className={`flex max-h-[90vh] w-full ${maxWidth} flex-col overflow-hidden rounded-xl bg-white shadow-xl`}
+        className={`flex max-h-[90vh] w-full ${maxWidth} flex-col overflow-hidden rounded-xl bg-white shadow-xl animate-[scale-in_0.15s_ease-out]`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

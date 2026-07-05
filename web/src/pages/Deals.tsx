@@ -3,6 +3,7 @@ import { useDeals, usePipelineStages } from '../hooks/useDeals'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import { useOrg } from '../context/OrgContext'
 import { useConfirm } from '../components/ConfirmDialog'
+import { useToast } from '../components/ToastProvider'
 import { AttachmentsModal } from '../components/AttachmentsModal'
 import type { Contact, Company, Deal } from '../types/database'
 import { can } from '../lib/permissions'
@@ -25,6 +26,7 @@ export function Deals() {
   const { data: contacts } = useSupabaseTable<Contact>('contacts', 'name')
   const { data: companies } = useSupabaseTable<Company>('companies', 'name')
   const confirm = useConfirm()
+  const toast = useToast()
   const [form, setForm] = useState(emptyForm)
   const [showForm, setShowForm] = useState(false)
   const [attachFor, setAttachFor] = useState<Deal | null>(null)
@@ -69,11 +71,13 @@ export function Deals() {
     })
     setForm(emptyForm)
     setShowForm(false)
+    toast('Negociação adicionada.')
   }
 
   async function handleRemove(deal: Deal) {
     if (await confirm({ description: `Excluir a negociação "${deal.title}"? Essa ação não pode ser desfeita.` })) {
-      remove(deal.id)
+      await remove(deal.id)
+      toast('Negociação excluída.')
     }
   }
 
@@ -200,10 +204,26 @@ export function Deals() {
                         <Button variant="ghost" size="xs" onClick={() => setAttachFor(deal)} aria-label="Anexos">
                           <IconPaperclip className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="xs" className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700" onClick={() => update(deal.id, { status: 'won' })}>
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                          onClick={() => {
+                            update(deal.id, { status: 'won' })
+                            toast('Negociação marcada como ganha.', 'success')
+                          }}
+                        >
                           Ganhou
                         </Button>
-                        <Button variant="ghost" size="xs" className="text-slate-500" onClick={() => update(deal.id, { status: 'lost' })}>
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          className="text-slate-500"
+                          onClick={() => {
+                            update(deal.id, { status: 'lost' })
+                            toast('Negociação marcada como perdida.', 'info')
+                          }}
+                        >
                           Perdeu
                         </Button>
                         {canDelete && (

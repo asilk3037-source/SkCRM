@@ -12,12 +12,14 @@ import { Textarea } from '../components/ui/Field'
 import { Alert } from '../components/ui/Alert'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageLoading } from '../components/ui/Spinner'
+import { useToast } from '../components/ToastProvider'
 import { IconCheck, IconCornerUpLeft, IconPaperclip } from '../components/ui/icons'
 
 export function PortalTicket() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const { tickets, loading, addComment, validate } = usePortalTickets()
+  const toast = useToast()
   const [text, setText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [attachmentError, setAttachmentError] = useState<string | null>(null)
@@ -86,10 +88,24 @@ export function PortalTicket() {
             não corresponda ao solicitado.
           </p>
           <div className="mt-3 flex gap-2">
-            <Button size="sm" className="!bg-emerald-600 hover:!bg-emerald-700" onClick={() => validate(ticket.id, true)}>
+            <Button
+              size="sm"
+              variant="success"
+              onClick={() => {
+                validate(ticket.id, true)
+                toast('Chamado concluído. Obrigado pela confirmação!')
+              }}
+            >
               <IconCheck className="h-3.5 w-3.5" /> Confirmar conclusão
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => validate(ticket.id, false)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                validate(ticket.id, false)
+                toast('Chamado retornado para a equipe.', 'info')
+              }}
+            >
               <IconCornerUpLeft className="h-3.5 w-3.5" /> Retornar (não resolvido)
             </Button>
           </div>

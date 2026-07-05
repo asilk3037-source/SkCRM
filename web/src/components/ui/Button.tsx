@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from 'react'
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success'
 type Size = 'md' | 'sm' | 'xs'
 
 const base =
@@ -12,12 +12,15 @@ const sizeStyles: Record<Size, string> = {
   xs: 'px-2 py-1 text-xs',
 }
 
+/** "Secondary" doubles as the outline treatment — a separate visually-identical
+ * "Outline" variant would just be dead weight in the design system. */
 const variantStyles: Record<Variant, string> = {
   primary: 'bg-orange-600 text-white shadow-sm hover:bg-orange-700 focus-visible:ring-orange-300',
   secondary:
     'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 focus-visible:ring-slate-300',
   ghost: 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-slate-300',
   danger: 'text-red-600 hover:bg-red-50 hover:text-red-700 focus-visible:ring-red-300',
+  success: 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 focus-visible:ring-emerald-300',
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

@@ -12,9 +12,13 @@ import { Badge } from '../components/ui/Badge'
 import { Alert } from '../components/ui/Alert'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageLoading } from '../components/ui/Spinner'
+import { DataCard, DataCardRow } from '../components/ui/DataCard'
+import { Pagination, paginate } from '../components/ui/Pagination'
+import { useToast } from '../components/ToastProvider'
 import { IconInbox, IconPlus } from '../components/ui/icons'
 
 const emptyForm = { subject: '', description: '', category: 'suporte', priority: 'media' }
+const PAGE_SIZE = 20
 
 /** SGN client-portal boxes: where is the ball, from the client's side. */
 const BOXES: Array<{ key: string; title: string; hint: string; match: (t: Ticket) => boolean }> = [
@@ -41,9 +45,11 @@ const BOXES: Array<{ key: string; title: string; hint: string; match: (t: Ticket
 export function Portal() {
   const navigate = useNavigate()
   const { tickets, loading, openTicket } = usePortalTickets()
+  const toast = useToast()
   const [form, setForm] = useState(emptyForm)
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(0)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -56,6 +62,7 @@ export function Portal() {
       const id = await openTicket(form)
       setForm(emptyForm)
       setShowForm(false)
+      toast('Chamado aberto com sucesso.')
       navigate(`/portal/${id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível abrir o chamado')
@@ -63,6 +70,9 @@ export function Portal() {
   }
 
   const closed = tickets.filter((t) => isTerminalStatus(t.status))
+  const pageCount = Math.max(1, Math.ceil(tickets.length / PAGE_SIZE))
+  const safePage = Math.min(page, pageCount - 1)
+  const pageItems = paginate(tickets, safePage, PAGE_SIZE)
 
   return (
     <PortalLayout>
@@ -176,38 +186,63 @@ export function Portal() {
                 hint='Clique em "Novo chamado" para abrir o primeiro.'
               />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Nº</th>
-                      <th className="px-4 py-3 font-medium">Assunto</th>
-                      <th className="px-4 py-3 font-medium">Tipo</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
-                      <th className="px-4 py-3 font-medium">Abertura</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {tickets.map((t) => (
-                      <tr key={t.id} className="hover:bg-slate-50/70">
-                        <td className="px-4 py-3">
-                          <Link to={`/portal/${t.id}`} className="font-semibold text-orange-600 hover:underline">
-                            #{t.number}
-                          </Link>
-                        </td>
-                        <td className="max-w-xs truncate px-4 py-3 font-medium text-slate-900">{t.subject}</td>
-                        <td className="px-4 py-3 text-slate-600">{CATEGORY_LABEL[t.category]}</td>
-                        <td className="px-4 py-3">
-                          <Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>
-                        </td>
-                        <td className="px-4 py-3 text-xs tabular-nums text-slate-400">
-                          {new Date(t.created_at).toLocaleDateString('pt-BR')}
-                        </td>
+              <>
+                <div className="hidden overflow-x-auto sm:block">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">Nº</th>
+                        <th className="px-4 py-3 font-medium">Assunto</th>
+                        <th className="px-4 py-3 font-medium">Tipo</th>
+                        <th className="px-4 py-3 font-medium">Status</th>
+                        <th className="px-4 py-3 font-medium">Abertura</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {pageItems.map((t) => (
+                        <tr key={t.id} className="hover:bg-slate-50/70">
+                          <td className="px-4 py-3">
+                            <Link to={`/portal/${t.id}`} className="font-semibold text-orange-600 hover:underline">
+                              #{t.number}
+                            </Link>
+                          </td>
+                          <td className="max-w-xs truncate px-4 py-3 font-medium text-slate-900">{t.subject}</td>
+                          <td className="px-4 py-3 text-slate-600">{CATEGORY_LABEL[t.category]}</td>
+                          <td className="px-4 py-3">
+                            <Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>
+                          </td>
+                          <td className="px-4 py-3 text-xs tabular-nums text-slate-400">
+                            {new Date(t.created_at).toLocaleDateString('pt-BR')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <Pagination page={safePage} pageCount={pageCount} totalItems={tickets.length} onChange={setPage} />
+                </div>
+
+                <div className="space-y-3 p-3 sm:hidden">
+                  {pageItems.map((t) => (
+                    <DataCard
+                      key={t.id}
+                      title={
+                        <Link to={`/portal/${t.id}`} className="text-slate-900 hover:text-orange-600 hover:underline">
+                          #{t.number} — {t.subject}
+                        </Link>
+                      }
+                      badge={<Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>}
+                    >
+                      <DataCardRow label="Tipo" value={CATEGORY_LABEL[t.category]} />
+                      <DataCardRow label="Abertura" value={new Date(t.created_at).toLocaleDateString('pt-BR')} />
+                    </DataCard>
+                  ))}
+                  {pageCount > 1 && (
+                    <Card>
+                      <Pagination page={safePage} pageCount={pageCount} totalItems={tickets.length} onChange={setPage} />
+                    </Card>
+                  )}
+                </div>
+              </>
             )}
             {closed.length > 0 && (
               <p className="border-t border-slate-100 px-4 py-2 text-xs text-slate-400">

@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import { useOrg } from '../context/OrgContext'
 import { useConfirm } from '../components/ConfirmDialog'
+import { useToast } from '../components/ToastProvider'
 import { CompanyUsersCard } from '../components/CompanyUsersCard'
 import type { Company, Contact, Ticket } from '../types/database'
 import { STATUS_LABEL, STATUS_TONE, isTerminalStatus } from '../lib/ticketMeta'
@@ -15,6 +16,7 @@ import { Badge } from '../components/ui/Badge'
 import { Alert } from '../components/ui/Alert'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageLoading } from '../components/ui/Spinner'
+import { DataCard, DataCardRow } from '../components/ui/DataCard'
 import { IconBuilding, IconInbox, IconPlus, IconUser } from '../components/ui/icons'
 
 function Metric({ label, value }: { label: string; value: number }) {
@@ -33,6 +35,7 @@ export function CompanyDetail() {
   const canEdit = can(role, 'companies', 'edit')
   const canDelete = can(role, 'companies', 'delete')
   const confirm = useConfirm()
+  const toast = useToast()
 
   const { data: companies, loading, update, remove } = useSupabaseTable<Company>('companies', 'name')
   const { data: contacts } = useSupabaseTable<Contact>('contacts', 'name')
@@ -82,6 +85,7 @@ export function CompanyDetail() {
     try {
       await update(company!.id, { ...form, website: form.website.trim() ? normalizeUrl(form.website) : '' })
       setEditing(false)
+      toast('Empresa atualizada.')
     } catch (err) {
       setError(friendlyDbError(err, 'Não foi possível salvar a empresa', 'Já existe uma empresa com esse nome.'))
     }
@@ -91,6 +95,7 @@ export function CompanyDetail() {
     if (!company) return
     if (await confirm({ description: `Excluir a empresa "${company.name}"? Essa ação não pode ser desfeita.` })) {
       await remove(company.id)
+      toast('Empresa excluída.')
       navigate('/empresas')
     }
   }
@@ -228,40 +233,61 @@ export function CompanyDetail() {
         {companyTickets.length === 0 ? (
           <EmptyState icon={<IconInbox className="h-5 w-5" />} title="Nenhum chamado relacionado a esta empresa ainda." compact />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">Nº</th>
-                  <th className="px-4 py-2.5 font-medium">Assunto</th>
-                  <th className="px-4 py-2.5 font-medium">Status</th>
-                  <th className="px-4 py-2.5 font-medium">Atualizado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {companyTickets
-                  .slice()
-                  .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-                  .slice(0, 10)
-                  .map((t) => (
-                    <tr key={t.id} className="hover:bg-slate-50/70">
-                      <td className="px-4 py-2.5">
-                        <Link to={`/chamados/${t.id}`} className="font-semibold text-orange-600 hover:underline">
-                          #{t.number}
+          (() => {
+            const recentTickets = companyTickets
+              .slice()
+              .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+              .slice(0, 10)
+            return (
+              <>
+                <div className="hidden overflow-x-auto sm:block">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th className="px-4 py-2.5 font-medium">Nº</th>
+                        <th className="px-4 py-2.5 font-medium">Assunto</th>
+                        <th className="px-4 py-2.5 font-medium">Status</th>
+                        <th className="px-4 py-2.5 font-medium">Atualizado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {recentTickets.map((t) => (
+                        <tr key={t.id} className="hover:bg-slate-50/70">
+                          <td className="px-4 py-2.5">
+                            <Link to={`/chamados/${t.id}`} className="font-semibold text-orange-600 hover:underline">
+                              #{t.number}
+                            </Link>
+                          </td>
+                          <td className="max-w-xs truncate px-4 py-2.5 font-medium text-slate-900">{t.subject}</td>
+                          <td className="px-4 py-2.5">
+                            <Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>
+                          </td>
+                          <td className="px-4 py-2.5 text-xs tabular-nums text-slate-400">
+                            {new Date(t.updated_at).toLocaleDateString('pt-BR')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="space-y-3 p-3 sm:hidden">
+                  {recentTickets.map((t) => (
+                    <DataCard
+                      key={t.id}
+                      title={
+                        <Link to={`/chamados/${t.id}`} className="text-slate-900 hover:text-orange-600 hover:underline">
+                          #{t.number} — {t.subject}
                         </Link>
-                      </td>
-                      <td className="max-w-xs truncate px-4 py-2.5 font-medium text-slate-900">{t.subject}</td>
-                      <td className="px-4 py-2.5">
-                        <Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>
-                      </td>
-                      <td className="px-4 py-2.5 text-xs tabular-nums text-slate-400">
-                        {new Date(t.updated_at).toLocaleDateString('pt-BR')}
-                      </td>
-                    </tr>
+                      }
+                      badge={<Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>}
+                    >
+                      <DataCardRow label="Atualizado" value={new Date(t.updated_at).toLocaleDateString('pt-BR')} />
+                    </DataCard>
                   ))}
-              </tbody>
-            </table>
-          </div>
+                </div>
+              </>
+            )
+          })()
         )}
       </Card>
 

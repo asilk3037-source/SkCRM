@@ -5,6 +5,7 @@ import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import type { Contact, Company, Ticket, TicketCategory, TicketPriority, TicketSector, TicketStatus } from '../types/database'
 import { STATUS_LABEL, STATUS_TONE, PRIORITY_LABEL, PRIORITY_TONE, CATEGORY_LABEL, SECTOR_LABEL, isTerminalStatus } from '../lib/ticketMeta'
 import { notify } from '../lib/notify'
+import { useToast } from '../components/ToastProvider'
 import { toCsv, downloadCsv } from '../lib/csv'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Button } from '../components/ui/Button'
@@ -15,7 +16,11 @@ import { Alert } from '../components/ui/Alert'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageLoading } from '../components/ui/Spinner'
 import { LoadError } from '../components/ui/LoadError'
+import { DataCard, DataCardRow } from '../components/ui/DataCard'
+import { Pagination, paginate } from '../components/ui/Pagination'
 import { IconAlertTriangle, IconDownload, IconInbox, IconPlus, IconSearch } from '../components/ui/icons'
+
+const PAGE_SIZE = 20
 
 const TICKET_EXPORT_HEADERS = [
   { key: 'number', label: 'Número' },
@@ -80,6 +85,7 @@ export function Tickets() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: tickets, loading, error: loadError, refresh, create } = useTickets()
+  const toast = useToast()
   const { data: contacts } = useSupabaseTable<Contact>('contacts', 'name')
   const { data: companies } = useSupabaseTable<Company>('companies', 'name')
   const [form, setForm] = useState(emptyForm)
@@ -105,6 +111,7 @@ export function Tickets() {
   const [sectorFilter, setSectorFilter] = useState<TicketSector | 'todos'>('todos')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [page, setPage] = useState(0)
 
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name
   const companyName = (id: string | null) => companies.find((c) => c.id === id)?.name
@@ -130,6 +137,7 @@ export function Tickets() {
     setSectorFilter('todos')
     setDateFrom('')
     setDateTo('')
+    setPage(0)
   }
 
   const others = sorted.filter((t) => {
@@ -147,6 +155,14 @@ export function Tickets() {
       requesterOf(t).toLowerCase().includes(q)
     )
   })
+
+  const pageCount = Math.max(1, Math.ceil(others.length / PAGE_SIZE))
+  const safePage = Math.min(page, pageCount - 1)
+  const pageItems = paginate(others, safePage, PAGE_SIZE)
+
+  useEffect(() => {
+    setPage(0)
+  }, [search, statusFilter, categoryFilter, sectorFilter, dateFrom, dateTo])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -171,6 +187,7 @@ export function Tickets() {
     notify('ticket_created', created.id)
     setForm(emptyForm)
     setShowForm(false)
+    toast(`Chamado #${created.number} aberto.`)
     navigate(`/chamados/${created.id}`)
   }
 
@@ -397,44 +414,79 @@ export function Tickets() {
             {others.length === 0 ? (
               <EmptyState icon={<IconInbox className="h-5 w-5" />} title="Nenhum chamado encontrado com esses filtros." compact />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Nº</th>
-                      <th className="px-4 py-3 font-medium">Assunto</th>
-                      <th className="px-4 py-3 font-medium">Solicitante</th>
-                      <th className="px-4 py-3 font-medium">Tipo</th>
-                      <th className="px-4 py-3 font-medium">Prioridade</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
-                      <th className="px-4 py-3 font-medium">Abertura</th>
-                      <th className="px-4 py-3 font-medium">Atualizado</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {others.map((t) => (
-                      <tr key={t.id} className="hover:bg-slate-50/70">
-                        <td className="px-4 py-3">
-                          <Link to={`/chamados/${t.id}`} className="font-semibold text-orange-600 hover:underline">
-                            #{t.number}
-                          </Link>
-                        </td>
-                        <td className="max-w-xs truncate px-4 py-3 font-medium text-slate-900">{t.subject}</td>
-                        <td className="px-4 py-3 text-slate-600">{requesterOf(t)}</td>
-                        <td className="px-4 py-3 text-slate-600">{CATEGORY_LABEL[t.category]}</td>
-                        <td className="px-4 py-3">
-                          <Badge tone={PRIORITY_TONE[t.priority]}>{PRIORITY_LABEL[t.priority]}</Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>
-                        </td>
-                        <td className="px-4 py-3 text-xs tabular-nums text-slate-400">{new Date(t.created_at).toLocaleDateString('pt-BR')}</td>
-                        <td className="px-4 py-3 text-xs tabular-nums text-slate-400">{new Date(t.updated_at).toLocaleDateString('pt-BR')}</td>
+              <>
+                <div className="hidden overflow-x-auto sm:block">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">Nº</th>
+                        <th className="px-4 py-3 font-medium">Assunto</th>
+                        <th className="px-4 py-3 font-medium">Solicitante</th>
+                        <th className="px-4 py-3 font-medium">Tipo</th>
+                        <th className="px-4 py-3 font-medium">Prioridade</th>
+                        <th className="px-4 py-3 font-medium">Status</th>
+                        <th className="px-4 py-3 font-medium">Abertura</th>
+                        <th className="px-4 py-3 font-medium">Atualizado</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {pageItems.map((t) => (
+                        <tr key={t.id} className="hover:bg-slate-50/70">
+                          <td className="px-4 py-3">
+                            <Link to={`/chamados/${t.id}`} className="font-semibold text-orange-600 hover:underline">
+                              #{t.number}
+                            </Link>
+                          </td>
+                          <td className="max-w-xs truncate px-4 py-3 font-medium text-slate-900">{t.subject}</td>
+                          <td className="px-4 py-3 text-slate-600">{requesterOf(t)}</td>
+                          <td className="px-4 py-3 text-slate-600">{CATEGORY_LABEL[t.category]}</td>
+                          <td className="px-4 py-3">
+                            <Badge tone={PRIORITY_TONE[t.priority]}>{PRIORITY_LABEL[t.priority]}</Badge>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>
+                          </td>
+                          <td className="px-4 py-3 text-xs tabular-nums text-slate-400">{new Date(t.created_at).toLocaleDateString('pt-BR')}</td>
+                          <td className="px-4 py-3 text-xs tabular-nums text-slate-400">{new Date(t.updated_at).toLocaleDateString('pt-BR')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <Pagination page={safePage} pageCount={pageCount} totalItems={others.length} onChange={setPage} />
+                </div>
+
+                <div className="space-y-3 p-3 sm:hidden">
+                  {pageItems.map((t) => (
+                    <DataCard
+                      key={t.id}
+                      title={
+                        <Link to={`/chamados/${t.id}`} className="text-slate-900 hover:text-orange-600 hover:underline">
+                          #{t.number} — {t.subject}
+                        </Link>
+                      }
+                      badge={<Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>}
+                      actions={
+                        <Link to={`/chamados/${t.id}`}>
+                          <Button variant="secondary" size="xs">
+                            Abrir chamado
+                          </Button>
+                        </Link>
+                      }
+                    >
+                      <DataCardRow label="Solicitante" value={requesterOf(t)} />
+                      <DataCardRow label="Tipo" value={CATEGORY_LABEL[t.category]} />
+                      <DataCardRow label="Prioridade" value={<Badge tone={PRIORITY_TONE[t.priority]}>{PRIORITY_LABEL[t.priority]}</Badge>} />
+                      <DataCardRow label="Abertura" value={new Date(t.created_at).toLocaleDateString('pt-BR')} />
+                      <DataCardRow label="Atualizado" value={new Date(t.updated_at).toLocaleDateString('pt-BR')} />
+                    </DataCard>
+                  ))}
+                  {pageCount > 1 && (
+                    <Card>
+                      <Pagination page={safePage} pageCount={pageCount} totalItems={others.length} onChange={setPage} />
+                    </Card>
+                  )}
+                </div>
+              </>
             )}
           </Card>
         </>

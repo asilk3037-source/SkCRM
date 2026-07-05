@@ -6,6 +6,8 @@ import { Modal } from './ui/Modal'
 import { Input, Select } from './ui/Field'
 import { Badge } from './ui/Badge'
 import { EmptyState } from './ui/EmptyState'
+import { DataCard, DataCardRow } from './ui/DataCard'
+import { Pagination } from './ui/Pagination'
 import { IconChevronDown, IconInbox, IconSearch } from './ui/icons'
 
 const PAGE_SIZE = 8
@@ -133,67 +135,65 @@ export function TicketListModal({
       {filtered.length === 0 ? (
         <EmptyState icon={<IconInbox className="h-5 w-5" />} title="Nenhum chamado encontrado." compact />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-              <tr>
-                <Th label="Nº" sortableKey="number" />
-                <Th label="Assunto" sortableKey="subject" />
-                <Th label="Solicitante" />
-                <Th label="Prioridade" sortableKey="priority" />
-                <Th label="Status" sortableKey="status" />
-                <Th label="Atualizado" sortableKey="updated_at" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {pageRows.map((t) => (
-                <tr key={t.id} className="hover:bg-slate-50/70">
-                  <td className="px-4 py-3">
-                    <Link to={`/chamados/${t.id}`} onClick={onClose} className="font-semibold text-orange-600 hover:underline">
-                      #{t.number}
-                    </Link>
-                  </td>
-                  <td className="max-w-xs truncate px-4 py-3 font-medium text-slate-900">{t.subject}</td>
-                  <td className="px-4 py-3 text-slate-600">{requesterOf(t)}</td>
-                  <td className="px-4 py-3">
-                    <Badge tone={PRIORITY_TONE[t.priority]}>{PRIORITY_LABEL[t.priority]}</Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-xs tabular-nums text-slate-400">
-                    {new Date(t.updated_at).toLocaleDateString('pt-BR')}
-                  </td>
+        <>
+          <div className="hidden overflow-x-auto sm:block">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <Th label="Nº" sortableKey="number" />
+                  <Th label="Assunto" sortableKey="subject" />
+                  <Th label="Solicitante" />
+                  <Th label="Prioridade" sortableKey="priority" />
+                  <Th label="Status" sortableKey="status" />
+                  <Th label="Atualizado" sortableKey="updated_at" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {pageRows.map((t) => (
+                  <tr key={t.id} className="hover:bg-slate-50/70">
+                    <td className="px-4 py-3">
+                      <Link to={`/chamados/${t.id}`} onClick={onClose} className="font-semibold text-orange-600 hover:underline">
+                        #{t.number}
+                      </Link>
+                    </td>
+                    <td className="max-w-xs truncate px-4 py-3 font-medium text-slate-900">{t.subject}</td>
+                    <td className="px-4 py-3 text-slate-600">{requesterOf(t)}</td>
+                    <td className="px-4 py-3">
+                      <Badge tone={PRIORITY_TONE[t.priority]}>{PRIORITY_LABEL[t.priority]}</Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-xs tabular-nums text-slate-400">
+                      {new Date(t.updated_at).toLocaleDateString('pt-BR')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="space-y-3 p-3 sm:hidden">
+            {pageRows.map((t) => (
+              <DataCard
+                key={t.id}
+                title={
+                  <Link to={`/chamados/${t.id}`} onClick={onClose} className="text-slate-900 hover:text-orange-600 hover:underline">
+                    #{t.number} — {t.subject}
+                  </Link>
+                }
+                badge={<Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>}
+              >
+                <DataCardRow label="Solicitante" value={requesterOf(t)} />
+                <DataCardRow label="Prioridade" value={<Badge tone={PRIORITY_TONE[t.priority]}>{PRIORITY_LABEL[t.priority]}</Badge>} />
+                <DataCardRow label="Atualizado" value={new Date(t.updated_at).toLocaleDateString('pt-BR')} />
+              </DataCard>
+            ))}
+          </div>
+        </>
       )}
 
-      {pageCount > 1 && (
-        <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-xs text-slate-500">
-          <span>
-            Página {currentPage + 1} de {pageCount} · {filtered.length} chamado(s)
-          </span>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={currentPage === 0}
-              className="rounded-md border border-slate-300 px-2.5 py-1 font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-            >
-              Anterior
-            </button>
-            <button
-              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
-              disabled={currentPage >= pageCount - 1}
-              className="rounded-md border border-slate-300 px-2.5 py-1 font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-            >
-              Próxima
-            </button>
-          </div>
-        </div>
-      )}
+      <Pagination page={currentPage} pageCount={pageCount} totalItems={filtered.length} onChange={setPage} />
     </Modal>
   )
 }

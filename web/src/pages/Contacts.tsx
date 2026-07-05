@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import { useOrg } from '../context/OrgContext'
 import { useConfirm } from '../components/ConfirmDialog'
+import { useToast } from '../components/ToastProvider'
 import { AttachmentsModal } from '../components/AttachmentsModal'
 import { ImportContactsModal } from '../components/ImportContactsModal'
 import type { Contact, Company } from '../types/database'
@@ -16,7 +17,11 @@ import { Alert } from '../components/ui/Alert'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageLoading } from '../components/ui/Spinner'
 import { LoadError } from '../components/ui/LoadError'
+import { DataCard, DataCardRow } from '../components/ui/DataCard'
+import { Pagination, paginate } from '../components/ui/Pagination'
 import { IconDownload, IconPaperclip, IconPlus, IconUser } from '../components/ui/icons'
+
+const PAGE_SIZE = 20
 
 const EXPORT_HEADERS = [
   { key: 'name', label: 'Nome' },
@@ -34,14 +39,19 @@ export function Contacts() {
   const { role } = useOrg()
   const canDelete = can(role, 'contacts', 'delete')
   const confirm = useConfirm()
+  const toast = useToast()
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [attachFor, setAttachFor] = useState<Contact | null>(null)
   const [showImport, setShowImport] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(0)
 
   const companyName = (id: string | null) => companies.find((c) => c.id === id)?.name ?? '—'
+  const pageCount = Math.max(1, Math.ceil(contacts.length / PAGE_SIZE))
+  const safePage = Math.min(page, pageCount - 1)
+  const pageItems = paginate(contacts, safePage, PAGE_SIZE)
 
   function startEdit(contact: Contact) {
     setEditingId(contact.id)
@@ -78,8 +88,10 @@ export function Contacts() {
     try {
       if (editingId) {
         await update(editingId, values)
+        toast('Contato atualizado.')
       } else {
         await create(values)
+        toast('Contato adicionado.')
       }
       resetForm()
     } catch (err) {
@@ -89,7 +101,8 @@ export function Contacts() {
 
   async function handleRemove(contact: Contact) {
     if (await confirm({ description: `Excluir o contato "${contact.name}"? Essa ação não pode ser desfeita.` })) {
-      remove(contact.id)
+      await remove(contact.id)
+      toast('Contato excluído.')
     }
   }
 
@@ -176,46 +189,82 @@ export function Contacts() {
           <EmptyState icon={<IconUser className="h-5 w-5" />} title="Nenhum contato cadastrado ainda." hint="Adicione um contato manualmente ou importe uma lista via CSV." />
         </Card>
       ) : (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Nome</th>
-                  <th className="px-4 py-3 font-medium">Empresa</th>
-                  <th className="px-4 py-3 font-medium">E-mail</th>
-                  <th className="px-4 py-3 font-medium">Telefone</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {contacts.map((contact) => (
-                  <tr key={contact.id} className="hover:bg-slate-50/70">
-                    <td className="px-4 py-3 font-medium text-slate-900">{contact.name}</td>
-                    <td className="px-4 py-3 text-slate-600">{companyName(contact.company_id)}</td>
-                    <td className="px-4 py-3 text-slate-600">{contact.email || '—'}</td>
-                    <td className="px-4 py-3 text-slate-600">{contact.phone || '—'}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="xs" onClick={() => setAttachFor(contact)}>
-                          <IconPaperclip className="h-3.5 w-3.5" /> Anexos
-                        </Button>
-                        <Button variant="ghost" size="xs" onClick={() => startEdit(contact)}>
-                          Editar
-                        </Button>
-                        {canDelete && (
-                          <Button variant="danger" size="xs" onClick={() => handleRemove(contact)}>
-                            Excluir
-                          </Button>
-                        )}
-                      </div>
-                    </td>
+        <>
+          <Card className="hidden overflow-hidden sm:block">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Nome</th>
+                    <th className="px-4 py-3 font-medium">Empresa</th>
+                    <th className="px-4 py-3 font-medium">E-mail</th>
+                    <th className="px-4 py-3 font-medium">Telefone</th>
+                    <th className="px-4 py-3"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {pageItems.map((contact) => (
+                    <tr key={contact.id} className="hover:bg-slate-50/70">
+                      <td className="px-4 py-3 font-medium text-slate-900">{contact.name}</td>
+                      <td className="px-4 py-3 text-slate-600">{companyName(contact.company_id)}</td>
+                      <td className="px-4 py-3 text-slate-600">{contact.email || '—'}</td>
+                      <td className="px-4 py-3 text-slate-600">{contact.phone || '—'}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="xs" onClick={() => setAttachFor(contact)}>
+                            <IconPaperclip className="h-3.5 w-3.5" /> Anexos
+                          </Button>
+                          <Button variant="ghost" size="xs" onClick={() => startEdit(contact)}>
+                            Editar
+                          </Button>
+                          {canDelete && (
+                            <Button variant="danger" size="xs" onClick={() => handleRemove(contact)}>
+                              Excluir
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={safePage} pageCount={pageCount} totalItems={contacts.length} onChange={setPage} />
+          </Card>
+
+          <div className="space-y-3 sm:hidden">
+            {pageItems.map((contact) => (
+              <DataCard
+                key={contact.id}
+                title={contact.name}
+                actions={
+                  <>
+                    <Button variant="ghost" size="xs" onClick={() => setAttachFor(contact)}>
+                      <IconPaperclip className="h-3.5 w-3.5" /> Anexos
+                    </Button>
+                    <Button variant="ghost" size="xs" onClick={() => startEdit(contact)}>
+                      Editar
+                    </Button>
+                    {canDelete && (
+                      <Button variant="danger" size="xs" onClick={() => handleRemove(contact)}>
+                        Excluir
+                      </Button>
+                    )}
+                  </>
+                }
+              >
+                <DataCardRow label="Empresa" value={companyName(contact.company_id)} />
+                <DataCardRow label="E-mail" value={contact.email || '—'} />
+                <DataCardRow label="Telefone" value={contact.phone || '—'} />
+              </DataCard>
+            ))}
+            {pageCount > 1 && (
+              <Card>
+                <Pagination page={safePage} pageCount={pageCount} totalItems={contacts.length} onChange={setPage} />
+              </Card>
+            )}
           </div>
-        </Card>
+        </>
       )}
       {attachFor && (
         <AttachmentsModal

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useOrg } from '../context/OrgContext'
 import { useConfirm } from './ConfirmDialog'
+import { useToast } from './ToastProvider'
 import { useCompanyMembers, type CompanyMemberWithAccess } from '../hooks/useCompanyMembers'
 import { can } from '../lib/permissions'
 import { Button } from './ui/Button'
@@ -10,6 +11,7 @@ import { Badge } from './ui/Badge'
 import { Alert } from './ui/Alert'
 import { EmptyState } from './ui/EmptyState'
 import { PageLoading } from './ui/Spinner'
+import { Avatar } from './ui/Avatar'
 import { IconPlus, IconUsers } from './ui/icons'
 
 const emptyForm = { name: '', email: '', password: '' }
@@ -18,6 +20,7 @@ export function CompanyUsersCard({ companyId }: { companyId: string }) {
   const { role } = useOrg()
   const canManage = can(role, 'companyUsers', 'manage')
   const confirm = useConfirm()
+  const toast = useToast()
   const { members, loading, create, edit, resetPassword, setActive, remove } = useCompanyMembers(companyId)
 
   const [showCreate, setShowCreate] = useState(false)
@@ -42,6 +45,7 @@ export function CompanyUsersCard({ companyId }: { companyId: string }) {
       await create(form)
       setForm(emptyForm)
       setShowCreate(false)
+      toast('Usuário do portal criado.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível criar o usuário.')
     }
@@ -55,6 +59,7 @@ export function CompanyUsersCard({ companyId }: { companyId: string }) {
     try {
       await edit(userId, editName.trim())
       setEditingId(null)
+      toast('Usuário atualizado.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível salvar.')
     } finally {
@@ -81,6 +86,7 @@ export function CompanyUsersCard({ companyId }: { companyId: string }) {
     setBusy(m.user_id)
     try {
       await setActive(m.user_id, !m.active)
+      toast(m.active ? 'Usuário inativado.' : 'Usuário ativado.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível atualizar.')
     } finally {
@@ -94,6 +100,7 @@ export function CompanyUsersCard({ companyId }: { companyId: string }) {
     setBusy(m.user_id)
     try {
       await remove(m.user_id)
+      toast('Acesso excluído.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível excluir.')
     } finally {
@@ -180,9 +187,7 @@ export function CompanyUsersCard({ companyId }: { companyId: string }) {
                 </form>
               ) : (
                 <>
-                  <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-orange-600 text-xs font-bold text-white">
-                    {memberLabel(m).slice(0, 1).toUpperCase()}
-                  </span>
+                  <Avatar name={memberLabel(m)} size="sm" />
                   <span className="font-medium text-slate-900">{memberLabel(m)}</span>
                   <span className="text-slate-500">{m.profile?.email}</span>
                   <Badge tone={m.active ? 'emerald' : 'slate'}>{m.active ? 'Ativo' : 'Inativo'}</Badge>

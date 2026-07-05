@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import { useOrg } from '../context/OrgContext'
 import { useConfirm } from '../components/ConfirmDialog'
+import { useToast } from '../components/ToastProvider'
 import type { Company } from '../types/database'
 import { formatPhoneBR, friendlyDbError, isValidPhoneBR, isValidUrl, normalizeUrl } from '../lib/validators'
 import { can } from '../lib/permissions'
@@ -14,19 +15,27 @@ import { Alert } from '../components/ui/Alert'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageLoading } from '../components/ui/Spinner'
 import { LoadError } from '../components/ui/LoadError'
+import { DataCard, DataCardRow } from '../components/ui/DataCard'
+import { Pagination, paginate } from '../components/ui/Pagination'
 import { IconBuilding, IconPlus } from '../components/ui/icons'
 
 const emptyForm = { name: '', website: '', phone: '', address: '', notes: '' }
+const PAGE_SIZE = 20
 
 export function Companies() {
   const { data: companies, loading, error: loadError, refresh, create, update, remove } = useSupabaseTable<Company>('companies', 'name')
   const { role } = useOrg()
   const canDelete = can(role, 'companies', 'delete')
   const confirm = useConfirm()
+  const toast = useToast()
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(0)
+  const pageCount = Math.max(1, Math.ceil(companies.length / PAGE_SIZE))
+  const safePage = Math.min(page, pageCount - 1)
+  const pageItems = paginate(companies, safePage, PAGE_SIZE)
 
   function startEdit(company: Company) {
     setEditingId(company.id)
@@ -66,8 +75,10 @@ export function Companies() {
     try {
       if (editingId) {
         await update(editingId, values)
+        toast('Empresa atualizada.')
       } else {
         await create(values)
+        toast('Empresa adicionada.')
       }
       resetForm()
     } catch (err) {
@@ -77,7 +88,8 @@ export function Companies() {
 
   async function handleRemove(company: Company) {
     if (await confirm({ description: `Excluir a empresa "${company.name}"? Essa ação não pode ser desfeita.` })) {
-      remove(company.id)
+      await remove(company.id)
+      toast('Empresa excluída.')
     }
   }
 
@@ -135,53 +147,105 @@ export function Companies() {
           <EmptyState icon={<IconBuilding className="h-5 w-5" />} title="Nenhuma empresa cadastrada ainda." />
         </Card>
       ) : (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Nome</th>
-                  <th className="px-4 py-3 font-medium">Website</th>
-                  <th className="px-4 py-3 font-medium">Telefone</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {companies.map((company) => (
-                  <tr key={company.id} className="hover:bg-slate-50/70">
-                    <td className="px-4 py-3 font-medium">
-                      <Link to={`/empresas/${company.id}`} className="text-slate-900 hover:text-orange-600 hover:underline">
-                        {company.name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {company.website ? (
-                        <a href={company.website} target="_blank" rel="noreferrer" className="text-orange-600 hover:underline">
-                          {company.website.replace(/^https?:\/\//, '')}
-                        </a>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{company.phone || '—'}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="xs" onClick={() => startEdit(company)}>
-                          Editar
-                        </Button>
-                        {canDelete && (
-                          <Button variant="danger" size="xs" onClick={() => handleRemove(company)}>
-                            Excluir
-                          </Button>
-                        )}
-                      </div>
-                    </td>
+        <>
+          <Card className="hidden overflow-hidden sm:block">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Nome</th>
+                    <th className="px-4 py-3 font-medium">Website</th>
+                    <th className="px-4 py-3 font-medium">Telefone</th>
+                    <th className="px-4 py-3"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {pageItems.map((company) => (
+                    <tr key={company.id} className="hover:bg-slate-50/70">
+                      <td className="px-4 py-3 font-medium">
+                        <Link to={`/empresas/${company.id}`} className="text-slate-900 hover:text-orange-600 hover:underline">
+                          {company.name}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {company.website ? (
+                          <a href={company.website} target="_blank" rel="noreferrer" className="text-orange-600 hover:underline">
+                            {company.website.replace(/^https?:\/\//, '')}
+                          </a>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{company.phone || '—'}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="xs" onClick={() => startEdit(company)}>
+                            Editar
+                          </Button>
+                          {canDelete && (
+                            <Button variant="danger" size="xs" onClick={() => handleRemove(company)}>
+                              Excluir
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={safePage} pageCount={pageCount} totalItems={companies.length} onChange={setPage} />
+          </Card>
+
+          <div className="space-y-3 sm:hidden">
+            {pageItems.map((company) => (
+              <DataCard
+                key={company.id}
+                title={
+                  <Link to={`/empresas/${company.id}`} className="text-slate-900 hover:text-orange-600 hover:underline">
+                    {company.name}
+                  </Link>
+                }
+                actions={
+                  <>
+                    <Button variant="ghost" size="xs" onClick={() => startEdit(company)}>
+                      Editar
+                    </Button>
+                    {canDelete && (
+                      <Button variant="danger" size="xs" onClick={() => handleRemove(company)}>
+                        Excluir
+                      </Button>
+                    )}
+                    <Link to={`/empresas/${company.id}`} className="ml-auto">
+                      <Button variant="secondary" size="xs">
+                        Mais ações
+                      </Button>
+                    </Link>
+                  </>
+                }
+              >
+                <DataCardRow label="Telefone" value={company.phone || '—'} />
+                <DataCardRow
+                  label="Website"
+                  value={
+                    company.website ? (
+                      <a href={company.website} target="_blank" rel="noreferrer" className="text-orange-600 hover:underline">
+                        {company.website.replace(/^https?:\/\//, '')}
+                      </a>
+                    ) : (
+                      '—'
+                    )
+                  }
+                />
+              </DataCard>
+            ))}
+            {pageCount > 1 && (
+              <Card>
+                <Pagination page={safePage} pageCount={pageCount} totalItems={companies.length} onChange={setPage} />
+              </Card>
+            )}
           </div>
-        </Card>
+        </>
       )}
     </div>
   )

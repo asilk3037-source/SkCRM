@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import { useOrg } from '../context/OrgContext'
 import { useConfirm } from '../components/ConfirmDialog'
+import { useToast } from '../components/ToastProvider'
 import type { Task } from '../types/database'
 import { can } from '../lib/permissions'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -21,6 +22,7 @@ export function Tasks() {
   const { role } = useOrg()
   const canDelete = can(role, 'tasks', 'delete')
   const confirm = useConfirm()
+  const toast = useToast()
   const [form, setForm] = useState(emptyForm)
   const [showForm, setShowForm] = useState(false)
 
@@ -34,10 +36,14 @@ export function Tasks() {
     })
     setForm(emptyForm)
     setShowForm(false)
+    toast('Tarefa adicionada.')
   }
 
   async function handleRemove(task: Task) {
-    if (await confirm({ description: `Excluir a tarefa "${task.title}"?` })) remove(task.id)
+    if (await confirm({ description: `Excluir a tarefa "${task.title}"?` })) {
+      await remove(task.id)
+      toast('Tarefa excluída.')
+    }
   }
 
   const pending = tasks.filter((t) => !t.done)
