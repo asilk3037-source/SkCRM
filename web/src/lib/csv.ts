@@ -56,3 +56,28 @@ export function parseCsvWithHeader(text: string): Array<Record<string, string>> 
   const keys = header.map((h) => h.trim().toLowerCase())
   return body.map((row) => Object.fromEntries(keys.map((key, i) => [key, (row[i] ?? '').trim()])))
 }
+
+function csvEscape(value: string): string {
+  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
+}
+
+/** Builds a CSV string (with header row) from an array of label→value rows. */
+export function toCsv(rows: Array<Record<string, string>>, headers: Array<{ key: string; label: string }>): string {
+  const headerLine = headers.map((h) => csvEscape(h.label)).join(',')
+  const lines = rows.map((row) => headers.map((h) => csvEscape(row[h.key] ?? '')).join(','))
+  return [headerLine, ...lines].join('\r\n')
+}
+
+/** Triggers a browser download of a CSV string. Prefixes a BOM so Excel opens UTF-8 accents correctly. */
+export function downloadCsv(filename: string, csv: string) {
+  const BOM = '﻿'
+  const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}

@@ -2,21 +2,23 @@ import { useMemo } from 'react'
 import { useDeals, usePipelineStages } from '../hooks/useDeals'
 import { useTickets } from '../hooks/useTickets'
 import { useOrg } from '../context/OrgContext'
+import { Card } from '../components/ui/Card'
+import { isTerminalStatus } from '../lib/ticketMeta'
 
 function Bar({ label, value, max, tone = 'orange', suffix = '' }: { label: string; value: number; max: number; tone?: 'orange' | 'emerald'; suffix?: string }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0
   return (
     <div>
       <div className="mb-1 flex items-baseline justify-between text-sm">
-        <span className="text-slate-700">{label}</span>
-        <span className="font-medium text-slate-900">
+        <span className="text-slate-600">{label}</span>
+        <span className="font-medium tabular-nums text-slate-900">
           {value}
           {suffix}
         </span>
       </div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
         <div
-          className={`h-full rounded-full ${tone === 'orange' ? 'bg-orange-500' : 'bg-emerald-500'}`}
+          className={`h-full rounded-full transition-all duration-500 ${tone === 'orange' ? 'bg-orange-500' : 'bg-emerald-500'}`}
           style={{ width: `${Math.max(pct, value > 0 ? 4 : 0)}%` }}
         />
       </div>
@@ -24,14 +26,13 @@ function Bar({ label, value, max, tone = 'orange', suffix = '' }: { label: strin
   )
 }
 
-function Card({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+function ReportCard({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
+    <Card className="p-5">
       <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-      {hint && <p className="mb-4 mt-0.5 text-xs text-slate-400">{hint}</p>}
-      {!hint && <div className="mb-4" />}
+      <p className="mb-4 mt-0.5 min-h-[1rem] text-xs text-slate-400">{hint}</p>
       <div className="space-y-3">{children}</div>
-    </div>
+    </Card>
   )
 }
 
@@ -78,7 +79,7 @@ export function Reports() {
     'Sem responsável'
 
   const production = useMemo(() => {
-    const closed = tickets.filter((t) => t.status === 'fechado' || t.status === 'resolvido')
+    const closed = tickets.filter((t) => t.status === 'concluido' || t.status === 'aguardando_validacao')
     const byAssignee = new Map<string, number>()
     for (const t of closed) {
       const key = t.assignee_id ?? '—'
@@ -92,7 +93,7 @@ export function Reports() {
   const maxProduction = Math.max(1, ...production.map((p) => p.count))
 
   const priorityBreakdown = useMemo(() => {
-    const active = tickets.filter((t) => t.status !== 'fechado')
+    const active = tickets.filter((t) => !isTerminalStatus(t.status))
     const counts: Record<string, number> = { baixa: 0, media: 0, alta: 0, urgente: 0 }
     for (const t of active) counts[t.priority] = (counts[t.priority] ?? 0) + 1
     return counts
@@ -101,10 +102,10 @@ export function Reports() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Relatórios</h1>
+      <h1 className="mb-6 text-2xl font-semibold tracking-tight text-slate-900">Relatórios</h1>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <Card title="Funil de vendas" hint="Negociações em aberto por etapa">
+        <ReportCard title="Funil de vendas" hint="Negociações em aberto por etapa">
           {funnel.length === 0 ? (
             <p className="text-sm text-slate-400">Nenhuma etapa cadastrada.</p>
           ) : (
@@ -112,18 +113,18 @@ export function Reports() {
           )}
           {(wonDeals.length > 0 || lostDeals.length > 0) && (
             <p className="border-t border-slate-100 pt-3 text-xs text-slate-500">
-              Taxa de conversão: <span className="font-semibold text-slate-700">{conversionRate}%</span> (
+              Taxa de conversão: <span className="font-semibold tabular-nums text-slate-700">{conversionRate}%</span> (
               {wonDeals.length} ganhas, {lostDeals.length} perdidas)
             </p>
           )}
-        </Card>
+        </ReportCard>
 
-        <Card title="Tempo de resolução de chamados" hint="Média entre abertura e conclusão">
+        <ReportCard title="Tempo de resolução de chamados" hint="Média entre abertura e conclusão">
           {avgResolutionDays === null ? (
             <p className="text-sm text-slate-400">Nenhum chamado resolvido ainda.</p>
           ) : (
             <>
-              <p className="text-3xl font-semibold text-slate-900">
+              <p className="text-3xl font-semibold tabular-nums text-slate-900">
                 {avgResolutionDays < 1
                   ? `${Math.round(avgResolutionDays * 24)}h`
                   : `${avgResolutionDays.toFixed(1)} dias`}
@@ -133,22 +134,22 @@ export function Reports() {
               </p>
             </>
           )}
-        </Card>
+        </ReportCard>
 
-        <Card title="Produção por pessoa" hint="Chamados resolvidos ou concluídos, por responsável">
+        <ReportCard title="Produção por pessoa" hint="Chamados resolvidos ou concluídos, por responsável">
           {production.length === 0 ? (
             <p className="text-sm text-slate-400">Nenhum chamado concluído ainda.</p>
           ) : (
             production.map((p) => <Bar key={p.label} label={p.label} value={p.count} max={maxProduction} tone="emerald" />)
           )}
-        </Card>
+        </ReportCard>
 
-        <Card title="Chamados ativos por prioridade" hint="Aberto, em andamento ou aguardando cliente">
+        <ReportCard title="Chamados ativos por prioridade" hint="Aberto, em andamento ou aguardando cliente">
           <Bar label="Baixa" value={priorityBreakdown.baixa} max={maxPriority} />
           <Bar label="Média" value={priorityBreakdown.media} max={maxPriority} />
           <Bar label="Alta" value={priorityBreakdown.alta} max={maxPriority} />
           <Bar label="Urgente" value={priorityBreakdown.urgente} max={maxPriority} />
-        </Card>
+        </ReportCard>
       </div>
     </div>
   )

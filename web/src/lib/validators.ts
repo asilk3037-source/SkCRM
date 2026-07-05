@@ -42,6 +42,20 @@ export function friendlyDbError(err: unknown, fallback: string, duplicateMessage
   return err instanceof Error ? err.message : fallback
 }
 
+const AUTH_ERROR_MAP: Array<[string, string]> = [
+  ['Invalid login credentials', 'E-mail ou senha incorretos.'],
+  ['Email not confirmed', 'Confirme seu e-mail antes de entrar — verifique sua caixa de entrada.'],
+  ['User already registered', 'Já existe uma conta com esse e-mail. Tente entrar em vez de criar uma nova conta.'],
+  ['Password should be at least', 'A senha é muito curta — use pelo menos 8 caracteres, com letras e números.'],
+]
+
+/** Traduz as mensagens mais comuns do Supabase Auth para pt-BR; mantém a original como fallback. */
+export function friendlyAuthError(err: unknown, fallback: string): string {
+  const message = err instanceof Error ? err.message : ''
+  const match = AUTH_ERROR_MAP.find(([needle]) => message.includes(needle))
+  return match?.[1] ?? message ?? fallback
+}
+
 export const MAX_COMMENT_LENGTH = 5000
 
 const BLOCKED_ATTACHMENT_EXTENSIONS = [

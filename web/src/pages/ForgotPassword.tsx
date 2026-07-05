@@ -1,44 +1,39 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { isStrongPassword, friendlyAuthError } from '../lib/validators'
 import { Button } from '../components/ui/Button'
 import { Input, Label } from '../components/ui/Field'
 import { Alert } from '../components/ui/Alert'
 import { AuthShell } from '../components/AuthShell'
 
-export function Signup() {
-  const { user, signUp } = useAuth()
+export function ForgotPassword() {
+  const { requestPasswordReset } = useAuth()
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  if (user) return <Navigate to="/" replace />
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!isStrongPassword(password)) {
-      setError('A senha precisa ter pelo menos 8 caracteres, com letras e números.')
-      return
-    }
     setSubmitting(true)
     try {
-      await signUp(email, password)
+      await requestPasswordReset(email.trim())
       setDone(true)
     } catch (err) {
-      setError(friendlyAuthError(err, 'Não foi possível criar a conta.'))
+      setError(err instanceof Error ? err.message : 'Não foi possível enviar o e-mail de recuperação.')
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <AuthShell title="Criar conta" subtitle="Comece a usar o SkCRM em menos de um minuto.">
+    <AuthShell title="Recuperar senha" subtitle="Enviamos um link para você criar uma nova senha.">
       {done ? (
-        <Alert tone="success">Conta criada! Verifique seu e-mail para confirmar o cadastro, depois faça login.</Alert>
+        <Alert tone="success">
+          Se houver uma conta com o e-mail <strong>{email}</strong>, enviamos um link de redefinição de senha.
+          Verifique sua caixa de entrada (e o spam).
+        </Alert>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <Alert tone="error">{error}</Alert>}
@@ -46,27 +41,15 @@ export function Signup() {
             <Label htmlFor="email">E-mail</Label>
             <Input id="email" type="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
-          <div>
-            <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <p className="mt-1.5 text-xs text-slate-400">Mínimo 8 caracteres, com letras e números.</p>
-          </div>
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Criando conta...' : 'Criar conta'}
+            {submitting ? 'Enviando...' : 'Enviar link de recuperação'}
           </Button>
         </form>
       )}
       <p className="mt-5 text-center text-sm text-slate-500">
-        Já tem conta?{' '}
+        Lembrou a senha?{' '}
         <Link to="/login" className="font-medium text-orange-600 hover:underline">
-          Entrar
+          Voltar para o login
         </Link>
       </p>
     </AuthShell>

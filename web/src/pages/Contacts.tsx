@@ -1,15 +1,39 @@
 import { useState, type FormEvent } from 'react'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
+import { useOrg } from '../context/OrgContext'
+import { useConfirm } from '../components/ConfirmDialog'
 import { AttachmentsModal } from '../components/AttachmentsModal'
 import { ImportContactsModal } from '../components/ImportContactsModal'
 import type { Contact, Company } from '../types/database'
 import { formatPhoneBR, friendlyDbError, isValidPhoneBR } from '../lib/validators'
+import { can } from '../lib/permissions'
+import { toCsv, downloadCsv } from '../lib/csv'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Button } from '../components/ui/Button'
+import { Card } from '../components/ui/Card'
+import { FieldGroup, Input, Select, Textarea } from '../components/ui/Field'
+import { Alert } from '../components/ui/Alert'
+import { EmptyState } from '../components/ui/EmptyState'
+import { PageLoading } from '../components/ui/Spinner'
+import { LoadError } from '../components/ui/LoadError'
+import { IconDownload, IconPaperclip, IconPlus, IconUser } from '../components/ui/icons'
+
+const EXPORT_HEADERS = [
+  { key: 'name', label: 'Nome' },
+  { key: 'email', label: 'E-mail' },
+  { key: 'phone', label: 'Telefone' },
+  { key: 'job_title', label: 'Cargo' },
+  { key: 'company', label: 'Empresa' },
+]
 
 const emptyForm = { name: '', email: '', phone: '', job_title: '', company_id: '', notes: '' }
 
 export function Contacts() {
-  const { data: contacts, loading, create, update, remove } = useSupabaseTable<Contact>('contacts', 'name')
+  const { data: contacts, loading, error: loadError, refresh, create, update, remove } = useSupabaseTable<Contact>('contacts', 'name')
   const { data: companies } = useSupabaseTable<Company>('companies', 'name')
+  const { role } = useOrg()
+  const canDelete = can(role, 'contacts', 'delete')
+  const confirm = useConfirm()
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -63,120 +87,135 @@ export function Contacts() {
     }
   }
 
+  async function handleRemove(contact: Contact) {
+    if (await confirm({ description: `Excluir o contato "${contact.name}"? Essa ação não pode ser desfeita.` })) {
+      remove(contact.id)
+    }
+  }
+
+  function handleExport() {
+    const rows = contacts.map((c) => ({
+      name: c.name,
+      email: c.email ?? '',
+      phone: c.phone ?? '',
+      job_title: c.job_title ?? '',
+      company: companyName(c.company_id),
+    }))
+    downloadCsv(`contatos-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows, EXPORT_HEADERS))
+  }
+
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-900">Contatos</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowImport(true)}
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Importar CSV
-          </button>
-          <button
-            onClick={() => (showForm ? resetForm() : setShowForm(true))}
-            className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
-          >
-            {showForm ? 'Cancelar' : 'Novo contato'}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Contatos"
+        actions={
+          <>
+            <Button variant="secondary" onClick={handleExport} disabled={contacts.length === 0}>
+              <IconDownload className="h-4 w-4" /> Exportar CSV
+            </Button>
+            <Button variant="secondary" onClick={() => setShowImport(true)}>
+              Importar CSV
+            </Button>
+            <Button variant={showForm ? 'secondary' : 'primary'} onClick={() => (showForm ? resetForm() : setShowForm(true))}>
+              {showForm ? 'Cancelar' : (
+                <>
+                  <IconPlus className="h-4 w-4" /> Novo contato
+                </>
+              )}
+            </Button>
+          </>
+        }
+      />
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-6 grid grid-cols-1 gap-3 rounded-lg sm:grid-cols-2 border border-slate-200 bg-white p-5">
-          <input
-            required
-            placeholder="Nome"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          <input
-            type="email"
-            placeholder="E-mail"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          <input
-            placeholder="Telefone"
-            value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: formatPhoneBR(e.target.value) })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          <input
-            placeholder="Cargo"
-            value={form.job_title}
-            onChange={(e) => setForm({ ...form, job_title: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          <select
-            value={form.company_id}
-            onChange={(e) => setForm({ ...form, company_id: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="">Sem empresa</option>
-            {companies.map((company) => (
-              <option key={company.id} value={company.id}>
-                {company.name}
-              </option>
-            ))}
-          </select>
-          <textarea
-            placeholder="Notas"
-            value={form.notes}
-            onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          {error && <p className="col-span-2 text-sm text-red-600">{error}</p>}
-          <button type="submit" className="col-span-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">
-            {editingId ? 'Salvar alterações' : 'Adicionar'}
-          </button>
-        </form>
+        <Card className="mb-6 p-5">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FieldGroup label="Nome" className="sm:col-span-2">
+              <Input required autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </FieldGroup>
+            <FieldGroup label="E-mail">
+              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </FieldGroup>
+            <FieldGroup label="Telefone">
+              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: formatPhoneBR(e.target.value) })} />
+            </FieldGroup>
+            <FieldGroup label="Cargo">
+              <Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} />
+            </FieldGroup>
+            <FieldGroup label="Empresa">
+              <Select value={form.company_id} onChange={(e) => setForm({ ...form, company_id: e.target.value })}>
+                <option value="">Sem empresa</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </Select>
+            </FieldGroup>
+            <FieldGroup label="Notas" className="sm:col-span-2">
+              <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </FieldGroup>
+            {error && (
+              <div className="sm:col-span-2">
+                <Alert tone="error">{error}</Alert>
+              </div>
+            )}
+            <div className="sm:col-span-2">
+              <Button type="submit">{editingId ? 'Salvar alterações' : 'Adicionar'}</Button>
+            </div>
+          </form>
+        </Card>
       )}
 
       {loading ? (
-        <p className="text-sm text-slate-500">Carregando...</p>
+        <PageLoading />
+      ) : loadError ? (
+        <LoadError message={loadError} onRetry={refresh} />
       ) : contacts.length === 0 ? (
-        <p className="text-sm text-slate-500">Nenhum contato cadastrado ainda.</p>
+        <Card>
+          <EmptyState icon={<IconUser className="h-5 w-5" />} title="Nenhum contato cadastrado ainda." hint="Adicione um contato manualmente ou importe uma lista via CSV." />
+        </Card>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-4 py-3">Nome</th>
-                  <th className="px-4 py-3">Empresa</th>
-                  <th className="px-4 py-3">E-mail</th>
-                  <th className="px-4 py-3">Telefone</th>
+                  <th className="px-4 py-3 font-medium">Nome</th>
+                  <th className="px-4 py-3 font-medium">Empresa</th>
+                  <th className="px-4 py-3 font-medium">E-mail</th>
+                  <th className="px-4 py-3 font-medium">Telefone</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {contacts.map((contact) => (
-                  <tr key={contact.id}>
+                  <tr key={contact.id} className="hover:bg-slate-50/70">
                     <td className="px-4 py-3 font-medium text-slate-900">{contact.name}</td>
                     <td className="px-4 py-3 text-slate-600">{companyName(contact.company_id)}</td>
-                    <td className="px-4 py-3 text-slate-600">{contact.email}</td>
-                    <td className="px-4 py-3 text-slate-600">{contact.phone}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button onClick={() => setAttachFor(contact)} className="mr-3 text-slate-500 hover:text-slate-900">
-                        📎 Anexos
-                      </button>
-                      <button onClick={() => startEdit(contact)} className="mr-3 text-slate-500 hover:text-slate-900">
-                        Editar
-                      </button>
-                      <button onClick={() => remove(contact.id)} className="text-red-500 hover:text-red-700">
-                        Excluir
-                      </button>
+                    <td className="px-4 py-3 text-slate-600">{contact.email || '—'}</td>
+                    <td className="px-4 py-3 text-slate-600">{contact.phone || '—'}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="xs" onClick={() => setAttachFor(contact)}>
+                          <IconPaperclip className="h-3.5 w-3.5" /> Anexos
+                        </Button>
+                        <Button variant="ghost" size="xs" onClick={() => startEdit(contact)}>
+                          Editar
+                        </Button>
+                        {canDelete && (
+                          <Button variant="danger" size="xs" onClick={() => handleRemove(contact)}>
+                            Excluir
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
       {attachFor && (
         <AttachmentsModal

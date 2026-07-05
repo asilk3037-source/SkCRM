@@ -1,15 +1,17 @@
 import type { ReactNode } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { IconLogOut } from './ui/icons'
 
 /** Minimal chrome for the client portal — no team sidebar, just a topbar. */
 export function PortalLayout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth()
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-100">
-      <header className="flex items-center gap-2 bg-slate-900 px-4 py-3 sm:gap-4 sm:px-6">
-        <span className="text-lg font-bold text-white">
-          Sk<span className="text-orange-500">CRM</span><span className="text-orange-500">.</span>
+    <div className="flex min-h-screen flex-col bg-slate-50">
+      <header className="flex items-center gap-2 border-b border-slate-800/60 bg-slate-900 px-4 py-3 sm:gap-4 sm:px-6">
+        <span className="text-lg font-bold tracking-tight text-white">
+          Sk<span className="text-orange-500">CRM</span>
+          <span className="text-orange-500">.</span>
         </span>
         <span className="hidden rounded-full bg-white/10 px-3 py-0.5 text-xs font-medium text-slate-200 sm:inline">
           Portal do cliente
@@ -18,8 +20,9 @@ export function PortalLayout({ children }: { children: ReactNode }) {
           <span className="hidden truncate text-xs text-slate-300 sm:inline">{user?.email}</span>
           <button
             onClick={() => signOut()}
-            className="rounded-md border border-slate-700 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-800"
+            className="flex items-center gap-1.5 rounded-md border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-200 transition-colors hover:bg-slate-800"
           >
+            <IconLogOut className="h-3.5 w-3.5" />
             Sair
           </button>
         </div>

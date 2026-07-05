@@ -7,10 +7,20 @@ const corsHeaders = {
 
 const FROM = 'SkCRM <onboarding@resend.dev>'
 
-type Body = { event: 'ticket_created' | 'ticket_comment' | 'org_invite'; id: string }
+type Body = { event: 'ticket_created' | 'ticket_comment' | 'ticket_resolved' | 'org_invite'; id: string }
 
 function truncate(text: string, max = 400) {
   return text.length > max ? `${text.slice(0, max)}…` : text
+}
+
+/** Escapes user-controlled text before interpolating it into an HTML email body. */
+function escapeHtml(text: string) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
 
 Deno.serve(async (req) => {
@@ -70,7 +80,7 @@ Deno.serve(async (req) => {
 
       subject = `Novo chamado #${ticket.number}: ${ticket.subject}`
       html = `<p>Um novo chamado foi aberto.</p>
-        <p><strong>#${ticket.number} — ${ticket.subject}</strong></p>
+        <p><strong>#${ticket.number} — ${escapeHtml(ticket.subject)}</strong></p>
         <p><a href="${siteUrl}/chamados/${ticket.id}">Abrir chamado no SkCRM</a></p>`
     } else if (event === 'ticket_comment') {
       const { data: comment } = await skcrm
@@ -124,9 +134,27 @@ Deno.serve(async (req) => {
       }
 
       subject = `Nova interação no chamado #${ticket.number}`
-      html = `<p>Nova mensagem no chamado <strong>#${ticket.number} — ${ticket.subject}</strong>:</p>
-        <blockquote>${truncate(comment.body)}</blockquote>
+      html = `<p>Nova mensagem no chamado <strong>#${ticket.number} — ${escapeHtml(ticket.subject)}</strong>:</p>
+        <blockquote>${escapeHtml(truncate(comment.body))}</blockquote>
         <p><a href="${siteUrl}/chamados/${ticket.id}">Ver chamado no SkCRM</a></p>`
+    } else if (event === 'ticket_resolved') {
+      const { data: ticket } = await skcrm
+        .from('tickets')
+        .select('id, number, subject, contact_id')
+        .eq('id', id)
+        .single()
+      if (!ticket) throw new Error('Chamado não encontrado')
+
+      if (ticket.contact_id) {
+        const { data: contact } = await skcrm.from('contacts').select('email').eq('id', ticket.contact_id).single()
+        if (contact?.email) to = [contact.email]
+      }
+
+      subject = `Chamado #${ticket.number} resolvido — confirme a conclusão`
+      html = `<p>A equipe concluiu o atendimento do seu chamado.</p>
+        <p><strong>#${ticket.number} — ${escapeHtml(ticket.subject)}</strong></p>
+        <p>Acesse o portal para confirmar a conclusão ou retornar o chamado caso algo não tenha sido resolvido:</p>
+        <p><a href="${siteUrl}/portal/${ticket.id}">Ver chamado no portal</a></p>`
     } else if (event === 'org_invite') {
       const { data: invite } = await skcrm.from('org_invites').select('id, email, role, org_id').eq('id', id).single()
       if (!invite) throw new Error('Convite não encontrado')
@@ -134,8 +162,8 @@ Deno.serve(async (req) => {
 
       to = [invite.email]
       subject = `Convite para ${org?.name ?? 'uma equipe'} no SkCRM`
-      html = `<p>Você foi convidado(a) para entrar na equipe <strong>${org?.name ?? ''}</strong> no SkCRM.</p>
-        <p>Crie sua conta usando este mesmo e-mail (<strong>${invite.email}</strong>) para entrar automaticamente:</p>
+      html = `<p>Você foi convidado(a) para entrar na equipe <strong>${escapeHtml(org?.name ?? '')}</strong> no SkCRM.</p>
+        <p>Crie sua conta usando este mesmo e-mail (<strong>${escapeHtml(invite.email)}</strong>) para entrar automaticamente:</p>
         <p><a href="${siteUrl}/cadastro">Criar conta no SkCRM</a></p>`
     }
 

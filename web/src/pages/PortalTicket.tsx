@@ -3,8 +3,16 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { PortalLayout } from '../components/PortalLayout'
 import { usePortalTickets, usePortalComments, usePortalAttachments } from '../hooks/usePortal'
 import { useAuth } from '../context/AuthContext'
-import { STATUS_LABEL, STATUS_COLOR, CATEGORY_LABEL, PRIORITY_LABEL, formatBytes } from '../lib/ticketMeta'
+import { STATUS_LABEL, STATUS_TONE, CATEGORY_LABEL, PRIORITY_LABEL, formatBytes } from '../lib/ticketMeta'
 import { MAX_COMMENT_LENGTH } from '../lib/validators'
+import { Button } from '../components/ui/Button'
+import { Card, CardHeader } from '../components/ui/Card'
+import { Badge } from '../components/ui/Badge'
+import { Textarea } from '../components/ui/Field'
+import { Alert } from '../components/ui/Alert'
+import { EmptyState } from '../components/ui/EmptyState'
+import { PageLoading } from '../components/ui/Spinner'
+import { IconCheck, IconCornerUpLeft, IconPaperclip } from '../components/ui/icons'
 
 export function PortalTicket() {
   const { id } = useParams<{ id: string }>()
@@ -22,7 +30,7 @@ export function PortalTicket() {
   if (loading) {
     return (
       <PortalLayout>
-        <p className="text-sm text-slate-500">Carregando...</p>
+        <PageLoading />
       </PortalLayout>
     )
   }
@@ -51,7 +59,7 @@ export function PortalTicket() {
     }
   }
 
-  const isResolved = ticket.status === 'resolvido'
+  const isResolved = ticket.status === 'aguardando_validacao'
 
   return (
     <PortalLayout>
@@ -60,13 +68,11 @@ export function PortalTicket() {
       </Link>
 
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-slate-900">
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900">
           Chamado <span className="text-orange-600">#{ticket.number}</span> — {ticket.subject}
         </h1>
-        <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[ticket.status]}`}>
-            {STATUS_LABEL[ticket.status]}
-          </span>
+        <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+          <Badge tone={STATUS_TONE[ticket.status]}>{STATUS_LABEL[ticket.status]}</Badge>
           <span>{CATEGORY_LABEL[ticket.category]}</span>·
           <span>Prioridade {PRIORITY_LABEL[ticket.priority]}</span>·
           <span>aberto em {new Date(ticket.created_at).toLocaleDateString('pt-BR')}</span>
@@ -74,69 +80,59 @@ export function PortalTicket() {
       </div>
 
       {isResolved && (
-        <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+        <Card className="mb-6 border-emerald-200 bg-emerald-50 p-4">
           <p className="text-sm font-medium text-emerald-800">
             A equipe concluiu o atendimento. Teste a solução e confirme a conclusão — ou retorne o chamado caso algo
             não corresponda ao solicitado.
           </p>
           <div className="mt-3 flex gap-2">
-            <button
-              onClick={() => validate(ticket.id, true)}
-              className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-            >
-              ✓ Confirmar conclusão
-            </button>
-            <button
-              onClick={() => validate(ticket.id, false)}
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-            >
-              ↩ Retornar (não resolvido)
-            </button>
+            <Button size="sm" className="!bg-emerald-600 hover:!bg-emerald-700" onClick={() => validate(ticket.id, true)}>
+              <IconCheck className="h-3.5 w-3.5" /> Confirmar conclusão
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => validate(ticket.id, false)}>
+              <IconCornerUpLeft className="h-3.5 w-3.5" /> Retornar (não resolvido)
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {ticket.description && (
-        <div className="mb-6 rounded-lg border border-slate-200 bg-white px-4 py-3">
-          <p className="text-xs font-semibold uppercase text-slate-400">Descrição</p>
+        <Card className="mb-6 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Descrição</p>
           <p className="mt-0.5 whitespace-pre-wrap text-sm text-slate-700">{ticket.description}</p>
-        </div>
+        </Card>
       )}
 
-      <div className="mb-6 rounded-lg border border-slate-200 bg-white">
-        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-2.5">
+      <Card className="mb-6 overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/60 px-4 py-2.5">
           <div>
-            <h2 className="text-sm font-semibold text-slate-700">Anexos ({attachments.length})</h2>
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+              Anexos
+              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">{attachments.length}</span>
+            </h2>
             <p className="text-xs text-slate-400">Envie capturas de tela ou documentos — limite de 40 MB por arquivo</p>
           </div>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50"
-          >
-            {uploading ? 'Enviando...' : '📎 Anexar arquivo'}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={(e) => handleUpload(e.target.files?.[0])}
-          />
+          <Button variant="secondary" size="sm" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+            <IconPaperclip className="h-3.5 w-3.5" /> {uploading ? 'Enviando...' : 'Anexar arquivo'}
+          </Button>
+          <input ref={fileInputRef} type="file" className="hidden" onChange={(e) => handleUpload(e.target.files?.[0])} />
         </div>
         {attachmentError && (
-          <p className="border-b border-red-100 bg-red-50 px-4 py-2 text-sm text-red-700">{attachmentError}</p>
+          <div className="border-b border-slate-100 px-4 py-2.5">
+            <Alert tone="error">{attachmentError}</Alert>
+          </div>
         )}
         {attachments.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-slate-400">Nenhum arquivo anexado ainda.</p>
+          <EmptyState icon={<IconPaperclip className="h-5 w-5" />} title="Nenhum arquivo anexado ainda." compact />
         ) : (
           <ul className="divide-y divide-slate-100">
             {attachments.map((att) => (
               <li key={att.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-                <span className="text-slate-400">📎</span>
+                <IconPaperclip className="h-4 w-4 flex-shrink-0 text-slate-400" />
                 <button onClick={() => download(att)} className="font-medium text-orange-600 hover:underline">
                   {att.file_name}
                 </button>
-                <span className="text-xs text-slate-400">{formatBytes(att.size_bytes)}</span>
+                <span className="text-xs tabular-nums text-slate-400">{formatBytes(att.size_bytes)}</span>
                 <span className="ml-auto text-xs text-slate-400">
                   {new Date(att.created_at).toLocaleDateString('pt-BR')}
                 </span>
@@ -144,13 +140,16 @@ export function PortalTicket() {
             ))}
           </ul>
         )}
-      </div>
+      </Card>
 
-      <div className="rounded-lg border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 bg-slate-50 px-4 py-2.5">
-          <h2 className="text-sm font-semibold text-slate-700">Interações ({comments.length})</h2>
+      <Card className="overflow-hidden">
+        <CardHeader>
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+            Interações
+            <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">{comments.length}</span>
+          </h2>
           <p className="text-xs text-slate-400">Sua conversa com a equipe de atendimento</p>
-        </div>
+        </CardHeader>
         <div className="space-y-3 p-4">
           {comments.map((comment) => {
             const mine = comment.owner_id === user?.id
@@ -174,22 +173,23 @@ export function PortalTicket() {
           {comments.length === 0 && <p className="text-sm text-slate-400">Nenhuma interação ainda.</p>}
         </div>
         <form onSubmit={handleSend} className="border-t border-slate-200 p-4">
-          {error && <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-          <textarea
+          {error && (
+            <div className="mb-2">
+              <Alert tone="error">{error}</Alert>
+            </div>
+          )}
+          <Textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Escreva aqui a mensagem — a equipe será notificada e o chamado volta para a fila de atendimento."
             rows={3}
             maxLength={MAX_COMMENT_LENGTH}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
           <div className="mt-2 flex justify-end">
-            <button type="submit" className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">
-              Enviar
-            </button>
+            <Button type="submit">Enviar</Button>
           </div>
         </form>
-      </div>
+      </Card>
     </PortalLayout>
   )
 }

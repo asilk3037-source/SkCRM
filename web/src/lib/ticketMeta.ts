@@ -1,19 +1,41 @@
 import type { TicketCategory, TicketPriority, TicketSector, TicketStatus } from '../types/database'
+import type { Tone } from '../components/ui/Badge'
 
 export const STATUS_LABEL: Record<TicketStatus, string> = {
+  analisar: 'Analisar',
   aberto: 'Aberto',
   em_andamento: 'Em andamento',
-  aguardando_cliente: 'Aguardando cliente',
-  resolvido: 'Resolvido',
-  fechado: 'Fechado',
+  matriz_decisao: 'Matriz de decisão',
+  teste: 'Teste',
+  teste_prioritario: 'Teste prioritário',
+  backlog: 'Backlog',
+  aguardando_validacao: 'Aguardando validação',
+  pendente_cliente: 'Pendente com cliente',
+  pendente_fornecedor: 'Pendente com fornecedor',
+  cancelado: 'Cancelado',
+  concluido: 'Concluído',
 }
 
-export const STATUS_COLOR: Record<TicketStatus, string> = {
-  aberto: 'bg-blue-100 text-blue-700',
-  em_andamento: 'bg-amber-100 text-amber-700',
-  aguardando_cliente: 'bg-purple-100 text-purple-700',
-  resolvido: 'bg-emerald-100 text-emerald-700',
-  fechado: 'bg-slate-200 text-slate-600',
+export const STATUS_TONE: Record<TicketStatus, Tone> = {
+  analisar: 'purple',
+  aberto: 'blue',
+  em_andamento: 'amber',
+  matriz_decisao: 'purple',
+  teste: 'orange',
+  teste_prioritario: 'red',
+  backlog: 'slate',
+  aguardando_validacao: 'emerald',
+  pendente_cliente: 'blue',
+  pendente_fornecedor: 'blue',
+  cancelado: 'red',
+  concluido: 'slate',
+}
+
+/** Status finais — um chamado nesses estados não conta como "ativo" em filas/indicadores. */
+export const TERMINAL_STATUSES: TicketStatus[] = ['concluido', 'cancelado']
+
+export function isTerminalStatus(status: TicketStatus): boolean {
+  return TERMINAL_STATUSES.includes(status)
 }
 
 export const PRIORITY_LABEL: Record<TicketPriority, string> = {
@@ -23,11 +45,11 @@ export const PRIORITY_LABEL: Record<TicketPriority, string> = {
   urgente: 'Urgente',
 }
 
-export const PRIORITY_COLOR: Record<TicketPriority, string> = {
-  baixa: 'bg-slate-100 text-slate-600',
-  media: 'bg-blue-100 text-blue-700',
-  alta: 'bg-orange-100 text-orange-700',
-  urgente: 'bg-red-100 text-red-700',
+export const PRIORITY_TONE: Record<TicketPriority, Tone> = {
+  baixa: 'slate',
+  media: 'blue',
+  alta: 'orange',
+  urgente: 'red',
 }
 
 export const CATEGORY_LABEL: Record<TicketCategory, string> = {
@@ -35,6 +57,7 @@ export const CATEGORY_LABEL: Record<TicketCategory, string> = {
   erro_sistema: 'Erro de sistema',
   melhoria: 'Melhoria',
   duvida: 'Dúvida',
+  customizacao: 'Customização',
   outro: 'Outro',
 }
 

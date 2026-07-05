@@ -1,6 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { Button } from '../components/ui/Button'
+import { Input, Label } from '../components/ui/Field'
+import { Alert } from '../components/ui/Alert'
+import { AuthShell } from '../components/AuthShell'
+import { friendlyAuthError } from '../lib/validators'
 
 export function Login() {
   const { user, signIn } = useAuth()
@@ -20,51 +25,41 @@ export function Login() {
       await signIn(email, password)
       navigate('/')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível entrar')
+      setError(friendlyAuthError(err, 'Não foi possível entrar.'))
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-slate-100">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-lg bg-white p-8 shadow-sm">
-        <h1 className="mb-6 text-2xl font-semibold text-slate-900">Entrar no SkCRM</h1>
-        {error && <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-        <label className="mb-3 block text-sm font-medium text-slate-700">
-          E-mail
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-          />
-        </label>
-        <label className="mb-5 block text-sm font-medium text-slate-700">
-          Senha
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
-        >
+    <AuthShell title="Bem-vindo de volta" subtitle="Entre com sua conta para acessar o SkCRM.">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && <Alert tone="error">{error}</Alert>}
+        <div>
+          <Label htmlFor="email">E-mail</Label>
+          <Input id="email" type="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password" className="!mb-0">
+              Senha
+            </Label>
+            <Link to="/recuperar-senha" className="mb-1.5 text-xs font-medium text-orange-600 hover:underline">
+              Esqueceu a senha?
+            </Link>
+          </div>
+          <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+        </div>
+        <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? 'Entrando...' : 'Entrar'}
-        </button>
-        <p className="mt-4 text-center text-sm text-slate-500">
-          Não tem conta?{' '}
-          <Link to="/cadastro" className="font-medium text-slate-900 hover:underline">
-            Criar conta
-          </Link>
-        </p>
+        </Button>
       </form>
-    </div>
+      <p className="mt-5 text-center text-sm text-slate-500">
+        Não tem conta?{' '}
+        <Link to="/cadastro" className="font-medium text-orange-600 hover:underline">
+          Criar conta
+        </Link>
+      </p>
+    </AuthShell>
   )
 }

@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient'
 
-type NotifyEvent = 'ticket_created' | 'ticket_comment' | 'org_invite'
+type NotifyEvent = 'ticket_created' | 'ticket_comment' | 'ticket_resolved' | 'org_invite'
 
 /** Fires the send-email edge function in the background; never blocks or throws on the caller. */
 export function notify(event: NotifyEvent, id: string) {

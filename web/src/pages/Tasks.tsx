@@ -1,11 +1,26 @@
 import { useState, type FormEvent } from 'react'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
+import { useOrg } from '../context/OrgContext'
+import { useConfirm } from '../components/ConfirmDialog'
 import type { Task } from '../types/database'
+import { can } from '../lib/permissions'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Button } from '../components/ui/Button'
+import { Card, CardHeader } from '../components/ui/Card'
+import { FieldGroup, Input, Textarea } from '../components/ui/Field'
+import { EmptyState } from '../components/ui/EmptyState'
+import { PageLoading } from '../components/ui/Spinner'
+import { LoadError } from '../components/ui/LoadError'
+import { Badge } from '../components/ui/Badge'
+import { IconCheckSquare, IconPlus } from '../components/ui/icons'
 
 const emptyForm = { title: '', description: '', due_date: '' }
 
 export function Tasks() {
-  const { data: tasks, loading, create, update, remove } = useSupabaseTable<Task>('tasks', 'due_date')
+  const { data: tasks, loading, error: loadError, refresh, create, update, remove } = useSupabaseTable<Task>('tasks', 'due_date')
+  const { role } = useOrg()
+  const canDelete = can(role, 'tasks', 'delete')
+  const confirm = useConfirm()
   const [form, setForm] = useState(emptyForm)
   const [showForm, setShowForm] = useState(false)
 
@@ -21,101 +36,123 @@ export function Tasks() {
     setShowForm(false)
   }
 
+  async function handleRemove(task: Task) {
+    if (await confirm({ description: `Excluir a tarefa "${task.title}"?` })) remove(task.id)
+  }
+
   const pending = tasks.filter((t) => !t.done)
   const done = tasks.filter((t) => t.done)
+  const isLate = (task: Task) => !!task.due_date && new Date(task.due_date) < new Date(new Date().toDateString())
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-900">Tarefas</h1>
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
-        >
-          {showForm ? 'Cancelar' : 'Nova tarefa'}
-        </button>
-      </div>
+      <PageHeader
+        title="Tarefas"
+        actions={
+          <Button variant={showForm ? 'secondary' : 'primary'} onClick={() => setShowForm((v) => !v)}>
+            {showForm ? 'Cancelar' : (
+              <>
+                <IconPlus className="h-4 w-4" /> Nova tarefa
+              </>
+            )}
+          </Button>
+        }
+      />
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-6 grid grid-cols-1 gap-3 rounded-lg sm:grid-cols-2 border border-slate-200 bg-white p-5">
-          <input
-            required
-            placeholder="Título"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          <input
-            type="date"
-            value={form.due_date}
-            onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          <textarea
-            placeholder="Descrição"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="col-span-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          <button type="submit" className="col-span-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">
-            Adicionar
-          </button>
-        </form>
+        <Card className="mb-6 p-5">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FieldGroup label="Título" className="sm:col-span-2">
+              <Input required autoFocus value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+            </FieldGroup>
+            <FieldGroup label="Prazo">
+              <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+            </FieldGroup>
+            <FieldGroup label="Descrição" className="sm:col-span-2">
+              <Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            </FieldGroup>
+            <div className="sm:col-span-2">
+              <Button type="submit">Adicionar</Button>
+            </div>
+          </form>
+        </Card>
       )}
 
       {loading ? (
-        <p className="text-sm text-slate-500">Carregando...</p>
+        <PageLoading />
+      ) : loadError ? (
+        <LoadError message={loadError} onRetry={refresh} />
       ) : (
         <div className="space-y-6">
-          <div className="rounded-lg border border-slate-200 bg-white">
-            <h2 className="border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">
-              Pendentes ({pending.length})
-            </h2>
-            <ul className="divide-y divide-slate-100">
-              {pending.map((task) => (
-                <li key={task.id} className="flex items-center gap-3 px-4 py-3 text-sm">
-                  <input type="checkbox" checked={false} onChange={() => update(task.id, { done: true })} />
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-900">{task.title}</p>
-                    {task.description && <p className="text-xs text-slate-500">{task.description}</p>}
-                  </div>
-                  {task.due_date && (
-                    <span
-                      className={`text-xs ${
-                        new Date(task.due_date) < new Date(new Date().toDateString())
-                          ? 'font-semibold text-red-600'
-                          : 'text-slate-400'
-                      }`}
-                    >
-                      {new Date(task.due_date).toLocaleDateString('pt-BR')}
-                      {new Date(task.due_date) < new Date(new Date().toDateString()) ? ' · atrasada' : ''}
-                    </span>
-                  )}
-                  <button onClick={() => remove(task.id)} className="text-red-500 hover:text-red-700">
-                    Excluir
-                  </button>
-                </li>
-              ))}
-              {pending.length === 0 && <li className="px-4 py-3 text-sm text-slate-500">Nenhuma tarefa pendente.</li>}
-            </ul>
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-white">
-            <h2 className="border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">
-              Concluídas ({done.length})
-            </h2>
-            <ul className="divide-y divide-slate-100">
-              {done.map((task) => (
-                <li key={task.id} className="flex items-center gap-3 px-4 py-3 text-sm text-slate-400">
-                  <input type="checkbox" checked={true} onChange={() => update(task.id, { done: false })} />
-                  <span className="flex-1 line-through">{task.title}</span>
-                  <button onClick={() => remove(task.id)} className="text-red-400 hover:text-red-600">
-                    Excluir
-                  </button>
-                </li>
-              ))}
-              {done.length === 0 && <li className="px-4 py-3 text-sm text-slate-500">Nenhuma tarefa concluída.</li>}
-            </ul>
-          </div>
+          <Card className="overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-slate-700">Pendentes</h2>
+                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">{pending.length}</span>
+              </div>
+            </CardHeader>
+            {pending.length === 0 ? (
+              <EmptyState icon={<IconCheckSquare className="h-5 w-5" />} title="Nenhuma tarefa pendente." compact />
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {pending.map((task) => (
+                  <li key={task.id} className="flex items-center gap-3 px-4 py-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={false}
+                      onChange={() => update(task.id, { done: true })}
+                      className="h-4 w-4 flex-shrink-0 rounded border-slate-300 text-orange-600 focus:ring-orange-400"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-slate-900">{task.title}</p>
+                      {task.description && <p className="truncate text-xs text-slate-500">{task.description}</p>}
+                    </div>
+                    {task.due_date && (
+                      <Badge tone={isLate(task) ? 'red' : 'slate'}>
+                        {new Date(task.due_date).toLocaleDateString('pt-BR')}
+                        {isLate(task) ? ' · atrasada' : ''}
+                      </Badge>
+                    )}
+                    {canDelete && (
+                      <Button variant="danger" size="xs" onClick={() => handleRemove(task)}>
+                        Excluir
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+          <Card className="overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-slate-700">Concluídas</h2>
+                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">{done.length}</span>
+              </div>
+            </CardHeader>
+            {done.length === 0 ? (
+              <EmptyState title="Nenhuma tarefa concluída." compact />
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {done.map((task) => (
+                  <li key={task.id} className="flex items-center gap-3 px-4 py-3 text-sm text-slate-400">
+                    <input
+                      type="checkbox"
+                      checked={true}
+                      onChange={() => update(task.id, { done: false })}
+                      className="h-4 w-4 flex-shrink-0 rounded border-slate-300 text-orange-600 focus:ring-orange-400"
+                    />
+                    <span className="flex-1 truncate line-through">{task.title}</span>
+                    {canDelete && (
+                      <Button variant="danger" size="xs" onClick={() => handleRemove(task)}>
+                        Excluir
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
         </div>
       )}
     </div>

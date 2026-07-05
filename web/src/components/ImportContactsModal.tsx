@@ -2,6 +2,9 @@ import { useRef, useState } from 'react'
 import { parseCsvWithHeader } from '../lib/csv'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import type { Contact, Company } from '../types/database'
+import { Modal } from './ui/Modal'
+import { Button } from './ui/Button'
+import { Alert } from './ui/Alert'
 
 type ParsedFields = { name: string; email: string; phone: string; job_title: string; company: string }
 type Row = ParsedFields & { duplicate: boolean }
@@ -83,6 +86,9 @@ export function ImportContactsModal({ onClose }: { onClose: () => void }) {
     setError(null)
     let created = 0
     let skipped = 0
+    // Local map (not the reactive `companies` state, which won't reflect inserts made
+    // earlier in this same loop) so two rows naming the same new company only create it once.
+    const companyByName = new Map(companies.map((c) => [c.name.toLowerCase(), c.id]))
     try {
       for (const row of rows) {
         if (row.duplicate) {
@@ -91,11 +97,13 @@ export function ImportContactsModal({ onClose }: { onClose: () => void }) {
         }
         let companyId: string | null = null
         if (row.company) {
-          const existing = companies.find((c) => c.name.toLowerCase() === row.company.toLowerCase())
-          if (existing) {
-            companyId = existing.id
+          const key = row.company.toLowerCase()
+          const existingId = companyByName.get(key)
+          if (existingId) {
+            companyId = existingId
           } else {
             const newCompany = await createCompany({ name: row.company } as Partial<Company>)
+            companyByName.set(key, newCompany.id)
             companyId = newCompany.id
           }
         }
@@ -120,103 +128,97 @@ export function ImportContactsModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-2xl rounded-lg bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
-          <h2 className="text-base font-semibold text-slate-900">Importar contatos (CSV)</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700">
-            ✕
-          </button>
-        </div>
-
-        <div className="p-5">
-          {!done && (
-            <>
-              <p className="mb-3 text-sm text-slate-500">
-                O arquivo precisa ter uma primeira linha de cabeçalho com pelo menos uma coluna de nome
-                (<code>nome</code> ou <code>name</code>). Colunas opcionais reconhecidas:{' '}
-                <code>email</code>, <code>telefone</code>, <code>cargo</code>, <code>empresa</code>.
-              </p>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                {fileName || 'Escolher arquivo CSV'}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,text/csv"
-                className="hidden"
-                onChange={(e) => handleFile(e.target.files?.[0])}
-              />
-            </>
-          )}
-
-          {error && <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-
-          {done && (
-            <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-              {done.created} contato(s) importado(s){done.skipped > 0 ? `, ${done.skipped} ignorado(s) por erro` : ''}.
-            </p>
-          )}
-
-          {rows.length > 0 && !done && (
-            <div className="mt-4">
-              <p className="mb-2 text-sm font-medium text-slate-700">
-                Pré-visualização ({rows.length} contatos
-                {rows.some((r) => r.duplicate) ? `, ${rows.filter((r) => r.duplicate).length} com e-mail duplicado` : ''})
-              </p>
-              <div className="max-h-64 overflow-auto rounded-md border border-slate-200">
-                <table className="w-full text-left text-xs">
-                  <thead className="sticky top-0 bg-slate-50 text-slate-500">
-                    <tr>
-                      <th className="px-3 py-2">Nome</th>
-                      <th className="px-3 py-2">E-mail</th>
-                      <th className="px-3 py-2">Telefone</th>
-                      <th className="px-3 py-2">Empresa</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {rows.slice(0, 50).map((r, i) => (
-                      <tr key={i} className={r.duplicate ? 'bg-amber-50 text-amber-800' : undefined}>
-                        <td className="px-3 py-1.5">{r.name}</td>
-                        <td className="px-3 py-1.5">
-                          {r.email}
-                          {r.duplicate && <span className="ml-1 text-[10px]">(duplicado, será ignorado)</span>}
-                        </td>
-                        <td className="px-3 py-1.5">{r.phone}</td>
-                        <td className="px-3 py-1.5">{r.company}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {rows.length > 50 && (
-                <p className="mt-1 text-xs text-slate-400">Mostrando os 50 primeiros de {rows.length}.</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-3">
-          <button
-            onClick={onClose}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
+    <Modal
+      title="Importar contatos (CSV)"
+      onClose={onClose}
+      size="lg"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
             {done ? 'Fechar' : 'Cancelar'}
-          </button>
+          </Button>
           {!done && (
-            <button
-              onClick={handleImport}
-              disabled={rows.length === 0 || importing}
-              className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
-            >
+            <Button onClick={handleImport} disabled={rows.length === 0 || importing}>
               {importing ? 'Importando...' : `Importar ${rows.length || ''} contato(s)`}
-            </button>
+            </Button>
           )}
-        </div>
+        </>
+      }
+    >
+      <div className="p-5">
+        {!done && (
+          <>
+            <p className="mb-3 text-sm text-slate-500">
+              O arquivo precisa ter uma primeira linha de cabeçalho com pelo menos uma coluna de nome
+              (<code className="rounded bg-slate-100 px-1 py-0.5 text-xs">nome</code> ou{' '}
+              <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">name</code>). Colunas opcionais reconhecidas:{' '}
+              <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">email</code>,{' '}
+              <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">telefone</code>,{' '}
+              <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">cargo</code>,{' '}
+              <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">empresa</code>.
+            </p>
+            <Button variant="secondary" onClick={() => fileInputRef.current?.click()}>
+              {fileName || 'Escolher arquivo CSV'}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => handleFile(e.target.files?.[0])}
+            />
+          </>
+        )}
+
+        {error && (
+          <div className="mt-3">
+            <Alert tone="error">{error}</Alert>
+          </div>
+        )}
+
+        {done && (
+          <Alert tone="success">
+            {done.created} contato(s) importado(s){done.skipped > 0 ? `, ${done.skipped} ignorado(s) por erro` : ''}.
+          </Alert>
+        )}
+
+        {rows.length > 0 && !done && (
+          <div className="mt-4">
+            <p className="mb-2 text-sm font-medium text-slate-700">
+              Pré-visualização ({rows.length} contatos
+              {rows.some((r) => r.duplicate) ? `, ${rows.filter((r) => r.duplicate).length} com e-mail duplicado` : ''})
+            </p>
+            <div className="max-h-64 overflow-auto rounded-lg border border-slate-200">
+              <table className="w-full text-left text-xs">
+                <thead className="sticky top-0 bg-slate-50 text-slate-500">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Nome</th>
+                    <th className="px-3 py-2 font-medium">E-mail</th>
+                    <th className="px-3 py-2 font-medium">Telefone</th>
+                    <th className="px-3 py-2 font-medium">Empresa</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {rows.slice(0, 50).map((r, i) => (
+                    <tr key={i} className={r.duplicate ? 'bg-amber-50 text-amber-800' : undefined}>
+                      <td className="px-3 py-1.5">{r.name}</td>
+                      <td className="px-3 py-1.5">
+                        {r.email}
+                        {r.duplicate && <span className="ml-1 text-[10px]">(duplicado, será ignorado)</span>}
+                      </td>
+                      <td className="px-3 py-1.5">{r.phone}</td>
+                      <td className="px-3 py-1.5">{r.company}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {rows.length > 50 && (
+              <p className="mt-1 text-xs text-slate-400">Mostrando os 50 primeiros de {rows.length}.</p>
+            )}
+          </div>
+        )}
       </div>
-    </div>
+    </Modal>
   )
 }

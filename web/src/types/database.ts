@@ -60,9 +60,21 @@ export interface Task {
   updated_at: string
 }
 
-export type TicketStatus = 'aberto' | 'em_andamento' | 'aguardando_cliente' | 'resolvido' | 'fechado'
+export type TicketStatus =
+  | 'analisar'
+  | 'aberto'
+  | 'em_andamento'
+  | 'matriz_decisao'
+  | 'teste'
+  | 'teste_prioritario'
+  | 'backlog'
+  | 'aguardando_validacao'
+  | 'pendente_cliente'
+  | 'pendente_fornecedor'
+  | 'cancelado'
+  | 'concluido'
 export type TicketPriority = 'baixa' | 'media' | 'alta' | 'urgente'
-export type TicketCategory = 'suporte' | 'erro_sistema' | 'melhoria' | 'duvida' | 'outro'
+export type TicketCategory = 'suporte' | 'erro_sistema' | 'melhoria' | 'duvida' | 'customizacao' | 'outro'
 export type TicketSector = 'suporte' | 'comercial' | 'desenvolvimento' | 'financeiro' | 'administrativo'
 
 export interface Ticket {
@@ -157,4 +169,15 @@ export interface OrgInvite {
   role: OrgRole
   created_by: string
   created_at: string
+}
+
+export interface CompanyMember {
+  id: string
+  org_id: string
+  company_id: string
+  user_id: string
+  contact_id: string | null
+  active: boolean
+  created_at: string
+  profile?: Profile
 }
