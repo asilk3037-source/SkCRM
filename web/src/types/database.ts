@@ -8,6 +8,7 @@ export interface Company {
   notes: string | null
   created_at: string
   updated_at: string
+  archived_at: string | null
 }
 
 export interface Contact {
@@ -21,6 +22,7 @@ export interface Contact {
   notes: string | null
   created_at: string
   updated_at: string
+  archived_at: string | null
 }
 
 export interface PipelineStage {
@@ -180,4 +182,14 @@ export interface CompanyMember {
   active: boolean
   created_at: string
   profile?: Profile
+}
+
+export interface CompanySlaSetting {
+  id: string
+  org_id: string
+  company_id: string
+  priority: TicketPriority
+  hours_limit: number
+  created_at: string
+  updated_at: string
 }

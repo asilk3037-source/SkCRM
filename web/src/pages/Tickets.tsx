@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTickets } from '../hooks/useTickets'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
-import type { Contact, Company, Ticket, TicketCategory, TicketPriority, TicketSector, TicketStatus } from '../types/database'
+import type { Contact, Company, CompanySlaSetting, Ticket, TicketCategory, TicketPriority, TicketSector, TicketStatus } from '../types/database'
 import { STATUS_LABEL, STATUS_TONE, PRIORITY_LABEL, PRIORITY_TONE, CATEGORY_LABEL, SECTOR_LABEL, isTerminalStatus } from '../lib/ticketMeta'
+import { getTicketSlaStatus, formatSlaLabel, slaTone } from '../lib/sla'
+import { activeOnly } from '../lib/archived'
 import { notify } from '../lib/notify'
 import { useToast } from '../components/ToastProvider'
 import { toCsv, downloadCsv } from '../lib/csv'
@@ -92,6 +94,7 @@ export function Tickets() {
   const toast = useToast()
   const { data: contacts } = useSupabaseTable<Contact>('contacts', 'name')
   const { data: companies } = useSupabaseTable<Company>('companies', 'name')
+  const { data: slaSettings } = useSupabaseTable<CompanySlaSetting>('company_sla_settings')
   const [form, setForm] = useState(emptyForm)
   const [showForm, setShowForm] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -120,6 +123,8 @@ export function Tickets() {
   const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name
   const companyName = (id: string | null) => companies.find((c) => c.id === id)?.name
   const requesterOf = (t: Ticket) => contactName(t.contact_id) || companyName(t.company_id) || '—'
+  const companyIdOf = (t: Ticket) => t.company_id ?? contacts.find((c) => c.id === t.contact_id)?.company_id ?? null
+  const slaOf = (t: Ticket) => getTicketSlaStatus(t, companyIdOf(t), slaSettings)
 
   const sorted = useMemo(
     () => [...tickets].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
@@ -244,7 +249,7 @@ export function Tickets() {
             <FieldGroup label="Contato">
               <Select value={form.contact_id} onChange={(e) => setForm({ ...form, contact_id: e.target.value })}>
                 <option value="">Sem contato</option>
-                {contacts.map((c) => (
+                {activeOnly(contacts).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
@@ -254,7 +259,7 @@ export function Tickets() {
             <FieldGroup label="Empresa">
               <Select value={form.company_id} onChange={(e) => setForm({ ...form, company_id: e.target.value })}>
                 <option value="">Sem empresa</option>
-                {companies.map((c) => (
+                {companies.filter((c) => !c.archived_at || c.id === form.company_id).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
@@ -335,6 +340,7 @@ export function Tickets() {
                                   <IconAlertTriangle className="h-3 w-3" /> sem responsável
                                 </span>
                               )}
+                              {slaOf(t)?.overdue && <Badge tone="red">Atrasado</Badge>}
                             </div>
                             <p className="mt-1 truncate text-sm font-medium text-slate-800">{t.subject}</p>
                             <p className="truncate text-xs text-slate-400">{requesterOf(t)}</p>
@@ -453,12 +459,15 @@ export function Tickets() {
                         <SortableTh label="Tipo" sortKey="category" active={sortKey === 'category'} dir={sortDir} onClick={toggleSort} />
                         <SortableTh label="Prioridade" sortKey="priority" active={sortKey === 'priority'} dir={sortDir} onClick={toggleSort} />
                         <SortableTh label="Status" sortKey="status" active={sortKey === 'status'} dir={sortDir} onClick={toggleSort} />
+                        <th className="px-4 py-3 font-medium">SLA</th>
                         <SortableTh label="Abertura" sortKey="created_at" active={sortKey === 'created_at'} dir={sortDir} onClick={toggleSort} />
                         <SortableTh label="Atualizado" sortKey="updated_at" active={sortKey === 'updated_at'} dir={sortDir} onClick={toggleSort} />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {pageItems.map((t) => (
+                      {pageItems.map((t) => {
+                        const sla = slaOf(t)
+                        return (
                         <tr key={t.id} className="hover:bg-slate-50/70">
                           <td className="px-4 py-3">
                             <Link to={`/chamados/${t.id}`} className="font-semibold text-orange-600 hover:underline">
@@ -474,17 +483,23 @@ export function Tickets() {
                           <td className="px-4 py-3">
                             <Badge tone={STATUS_TONE[t.status]}>{STATUS_LABEL[t.status]}</Badge>
                           </td>
+                          <td className="px-4 py-3">
+                            {sla ? <Badge tone={slaTone(sla)}>{formatSlaLabel(sla)}</Badge> : <span className="text-slate-300">—</span>}
+                          </td>
                           <td className="px-4 py-3 text-xs tabular-nums text-slate-400">{new Date(t.created_at).toLocaleDateString('pt-BR')}</td>
                           <td className="px-4 py-3 text-xs tabular-nums text-slate-400">{new Date(t.updated_at).toLocaleDateString('pt-BR')}</td>
                         </tr>
-                      ))}
+                        )
+                      })}
                     </tbody>
                   </table>
                   <Pagination page={safePage} pageCount={pageCount} totalItems={others.length} onChange={setPage} />
                 </div>
 
                 <div className="space-y-3 p-3 sm:hidden">
-                  {pageItems.map((t) => (
+                  {pageItems.map((t) => {
+                    const sla = slaOf(t)
+                    return (
                     <DataCard
                       key={t.id}
                       title={
@@ -504,10 +519,12 @@ export function Tickets() {
                       <DataCardRow label="Solicitante" value={requesterOf(t)} />
                       <DataCardRow label="Tipo" value={CATEGORY_LABEL[t.category]} />
                       <DataCardRow label="Prioridade" value={<Badge tone={PRIORITY_TONE[t.priority]}>{PRIORITY_LABEL[t.priority]}</Badge>} />
+                      {sla && <DataCardRow label="SLA" value={<Badge tone={slaTone(sla)}>{formatSlaLabel(sla)}</Badge>} />}
                       <DataCardRow label="Abertura" value={new Date(t.created_at).toLocaleDateString('pt-BR')} />
                       <DataCardRow label="Atualizado" value={new Date(t.updated_at).toLocaleDateString('pt-BR')} />
                     </DataCard>
-                  ))}
+                    )
+                  })}
                   {pageCount > 1 && (
                     <Card>
                       <Pagination page={safePage} pageCount={pageCount} totalItems={others.length} onChange={setPage} />

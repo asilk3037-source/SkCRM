@@ -1,17 +1,19 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import { useOrg } from '../context/OrgContext'
 import { useConfirm } from '../components/ConfirmDialog'
 import { useToast } from '../components/ToastProvider'
-import type { Company } from '../types/database'
+import type { Company, Contact, Deal, Ticket, CompanyMember } from '../types/database'
 import { formatPhoneBR, friendlyDbError, isValidPhoneBR, isValidUrl, normalizeUrl } from '../lib/validators'
+import { companyHasActiveLinks } from '../lib/companyLinks'
 import { can } from '../lib/permissions'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { FieldGroup, Input, Textarea } from '../components/ui/Field'
 import { Alert } from '../components/ui/Alert'
+import { Badge } from '../components/ui/Badge'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageLoading } from '../components/ui/Spinner'
 import { LoadError } from '../components/ui/LoadError'
@@ -28,6 +30,10 @@ const PAGE_SIZE = 20
 
 export function Companies() {
   const { data: companies, loading, error: loadError, refresh, create, update, remove } = useSupabaseTable<Company>('companies', 'name')
+  const { data: contacts } = useSupabaseTable<Contact>('contacts', 'name')
+  const { data: tickets } = useSupabaseTable<Ticket>('tickets')
+  const { data: deals } = useSupabaseTable<Deal>('deals')
+  const { data: members } = useSupabaseTable<CompanyMember>('company_members')
   const { role } = useOrg()
   const canDelete = can(role, 'companies', 'delete')
   const confirm = useConfirm()
@@ -35,16 +41,25 @@ export function Companies() {
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(0)
+  const archivedCount = companies.filter((c) => c.archived_at).length
+  const visibleCompanies = companies.filter((c) => (showArchived ? !!c.archived_at : !c.archived_at))
   const { sorted, sortKey, sortDir, toggleSort } = useSort<Company, CompanySortKey>(
-    companies,
+    visibleCompanies,
     (company, key) => company[key] ?? '',
     'name',
   )
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const safePage = Math.min(page, pageCount - 1)
   const pageItems = paginate(sorted, safePage, PAGE_SIZE)
+
+  const activeLinksByCompany = useMemo(
+    () => new Map(companies.map((c) => [c.id, companyHasActiveLinks(c, contacts, tickets, deals, members)])),
+    [companies, contacts, tickets, deals, members],
+  )
+  const hasActiveLinks = (company: Company) => activeLinksByCompany.get(company.id) ?? false
 
   function startEdit(company: Company) {
     setEditingId(company.id)
@@ -95,8 +110,27 @@ export function Companies() {
     }
   }
 
+  async function handleArchive(company: Company) {
+    if (
+      await confirm({
+        title: 'Arquivar empresa',
+        description: `Arquivar "${company.name}"? Ela deixa de aparecer na lista de empresas ativas, mas nada é apagado — dá para restaurar quando quiser.`,
+        confirmLabel: 'Arquivar',
+        tone: 'default',
+      })
+    ) {
+      await update(company.id, { archived_at: new Date().toISOString() })
+      toast('Empresa arquivada.')
+    }
+  }
+
+  async function handleRestore(company: Company) {
+    await update(company.id, { archived_at: null })
+    toast('Empresa restaurada.')
+  }
+
   async function handleRemove(company: Company) {
-    if (await confirm({ description: `Excluir a empresa "${company.name}"? Essa ação não pode ser desfeita.` })) {
+    if (await confirm({ description: `Excluir definitivamente a empresa "${company.name}"? Essa ação não pode ser desfeita.` })) {
       await remove(company.id)
       toast('Empresa excluída.')
     }
@@ -107,15 +141,20 @@ export function Companies() {
       <PageHeader
         eyebrow="Carteira de clientes"
         title="Empresas"
-        description={`${companies.length} empresa(s) cadastrada(s)`}
+        description={showArchived ? `${visibleCompanies.length} empresa(s) arquivada(s)` : `${visibleCompanies.length} empresa(s) cadastrada(s)`}
         actions={
-          <Button variant={showForm ? 'secondary' : 'primary'} onClick={() => (showForm ? resetForm() : setShowForm(true))}>
-            {showForm ? 'Cancelar' : (
-              <>
-                <IconPlus className="h-4 w-4" /> Nova empresa
-              </>
-            )}
-          </Button>
+          <>
+            <Button variant="secondary" onClick={() => setShowArchived((v) => !v)}>
+              {showArchived ? 'Ver ativas' : `Arquivadas${archivedCount ? ` (${archivedCount})` : ''}`}
+            </Button>
+            <Button variant={showForm ? 'secondary' : 'primary'} onClick={() => (showForm ? resetForm() : setShowForm(true))}>
+              {showForm ? 'Cancelar' : (
+                <>
+                  <IconPlus className="h-4 w-4" /> Nova empresa
+                </>
+              )}
+            </Button>
+          </>
         }
       />
 
@@ -153,9 +192,12 @@ export function Companies() {
         <PageLoading />
       ) : loadError ? (
         <LoadError message={loadError} onRetry={refresh} />
-      ) : companies.length === 0 ? (
+      ) : visibleCompanies.length === 0 ? (
         <Card>
-          <EmptyState icon={<IconBuilding className="h-5 w-5" />} title="Nenhuma empresa cadastrada ainda." />
+          <EmptyState
+            icon={<IconBuilding className="h-5 w-5" />}
+            title={showArchived ? 'Nenhuma empresa arquivada.' : 'Nenhuma empresa cadastrada ainda.'}
+          />
         </Card>
       ) : (
         <>
@@ -179,6 +221,7 @@ export function Companies() {
                             <IconBuilding className="h-3.5 w-3.5" />
                           </span>
                           {company.name}
+                          {company.archived_at && <Badge tone="slate">Arquivada</Badge>}
                         </Link>
                       </td>
                       <td className="px-4 py-3 text-slate-600">
@@ -196,7 +239,16 @@ export function Companies() {
                           <Button variant="ghost" size="xs" onClick={() => startEdit(company)}>
                             Editar
                           </Button>
-                          {canDelete && (
+                          {canDelete && (company.archived_at ? (
+                            <Button variant="secondary" size="xs" onClick={() => handleRestore(company)}>
+                              Restaurar
+                            </Button>
+                          ) : (
+                            <Button variant="secondary" size="xs" onClick={() => handleArchive(company)}>
+                              Arquivar
+                            </Button>
+                          ))}
+                          {canDelete && !hasActiveLinks(company) && (
                             <Button variant="danger" size="xs" onClick={() => handleRemove(company)}>
                               Excluir
                             </Button>
@@ -208,7 +260,7 @@ export function Companies() {
                 </tbody>
               </table>
             </div>
-            <Pagination page={safePage} pageCount={pageCount} totalItems={companies.length} onChange={setPage} />
+            <Pagination page={safePage} pageCount={pageCount} totalItems={visibleCompanies.length} onChange={setPage} />
           </Card>
 
           <div className="space-y-3 sm:hidden">
@@ -216,8 +268,9 @@ export function Companies() {
               <DataCard
                 key={company.id}
                 title={
-                  <Link to={`/empresas/${company.id}`} className="text-slate-900 hover:text-orange-600 hover:underline">
+                  <Link to={`/empresas/${company.id}`} className="flex items-center gap-2 text-slate-900 hover:text-orange-600 hover:underline">
                     {company.name}
+                    {company.archived_at && <Badge tone="slate">Arquivada</Badge>}
                   </Link>
                 }
                 actions={
@@ -225,7 +278,16 @@ export function Companies() {
                     <Button variant="ghost" size="xs" onClick={() => startEdit(company)}>
                       Editar
                     </Button>
-                    {canDelete && (
+                    {canDelete && (company.archived_at ? (
+                      <Button variant="secondary" size="xs" onClick={() => handleRestore(company)}>
+                        Restaurar
+                      </Button>
+                    ) : (
+                      <Button variant="secondary" size="xs" onClick={() => handleArchive(company)}>
+                        Arquivar
+                      </Button>
+                    ))}
+                    {canDelete && !hasActiveLinks(company) && (
                       <Button variant="danger" size="xs" onClick={() => handleRemove(company)}>
                         Excluir
                       </Button>
@@ -255,7 +317,7 @@ export function Companies() {
             ))}
             {pageCount > 1 && (
               <Card>
-                <Pagination page={safePage} pageCount={pageCount} totalItems={companies.length} onChange={setPage} />
+                <Pagination page={safePage} pageCount={pageCount} totalItems={visibleCompanies.length} onChange={setPage} />
               </Card>
             )}
           </div>

@@ -41,12 +41,15 @@ com segurança".
 - ~~**41 chaves estrangeiras sem índice** no schema `skcrm`~~ — **corrigido
   em 05/07/2026**, todos os 41 índices criados direto no banco de produção
   (ver `PENDENCIAS.md`).
-- **RLS reavalia função por linha** (7 policies em `profiles`, `orgs`,
-  `org_members`, `tickets`) — `auth.uid()` chamado por linha em vez de uma vez
-  por query. Pendente.
-- **Múltiplas policies permissivas** (24 casos em `contacts`, `tickets`,
-  `ticket_attachments`, `ticket_comments`) — duas policies de SELECT avaliadas
-  em toda consulta em vez de uma. Pendente.
+- ~~**RLS reavalia função por linha** (7 policies em `profiles`, `orgs`,
+  `org_members`, `tickets`)~~ — **corrigido em 06/07/2026**, `auth.uid()`
+  trocado por `(select auth.uid())` nas 7 policies (`supabase/migrations/0002_rls_perf.sql`).
+- ~~**Múltiplas policies permissivas** (24 casos em `contacts`, `tickets`,
+  `ticket_attachments`, `ticket_comments`)~~ — **corrigido em 06/07/2026**,
+  mescladas em uma única policy de SELECT por tabela (mesma migration).
+  Confirmado via advisor de performance do Supabase: os dois alertas
+  (`auth_rls_initplan`, `multiple_permissive_policies`) não aparecem mais
+  para o schema `skcrm`.
 
 ### Arquitetura e qualidade
 
@@ -88,8 +91,8 @@ coluna, **1 refactor de risco alto** (status do chamado) validado ao vivo.
 - [ ] Replicar ordenação de coluna em Detalhe da empresa (lista de contatos) e
   Portal do cliente. (Equipe e TV Chamados ficam de fora — baixo valor/n.a.)
 - [ ] Revisar as 16 funções `SECURITY DEFINER` uma a uma.
-- [ ] Corrigir RLS initplan (`auth.uid()` por linha) e as policies
-  permissivas duplicadas.
+- [x] Corrigir RLS initplan (`auth.uid()` por linha) e as policies
+  permissivas duplicadas. *(06/07/2026)*
 - [ ] Ativar proteção contra senha vazada no Supabase Auth (Dashboard →
   Authentication → Settings — passo manual de ~1 min).
 

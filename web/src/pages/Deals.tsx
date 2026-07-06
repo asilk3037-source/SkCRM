@@ -7,6 +7,7 @@ import { useToast } from '../components/ToastProvider'
 import { AttachmentsModal } from '../components/AttachmentsModal'
 import type { Contact, Company, Deal } from '../types/database'
 import { can } from '../lib/permissions'
+import { activeOnly } from '../lib/archived'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
@@ -123,7 +124,7 @@ export function Deals() {
             <FieldGroup label="Contato">
               <Select value={form.contact_id} onChange={(e) => setForm({ ...form, contact_id: e.target.value })}>
                 <option value="">Sem contato</option>
-                {contacts.map((c) => (
+                {activeOnly(contacts).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
@@ -133,7 +134,7 @@ export function Deals() {
             <FieldGroup label="Empresa">
               <Select value={form.company_id} onChange={(e) => setForm({ ...form, company_id: e.target.value })}>
                 <option value="">Sem empresa</option>
-                {companies.map((c) => (
+                {activeOnly(companies).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>

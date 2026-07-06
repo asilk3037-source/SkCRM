@@ -8,6 +8,19 @@ Formato por item: Contexto → Impacto → Opções → Minha recomendação →
 
 ---
 
+## 1. Excluir empresa com chamados ou usuários do portal vinculados — resolvido (06/07/2026)
+
+Implementada a opção 3 (Arquivar). Empresas e contatos agora têm um botão
+"Arquivar" que soma um `archived_at` sem apagar nada — a empresa/contato some
+da lista padrão, mas continua acessível pelo toggle "Arquivadas" e por link
+direto. O botão "Excluir" definitivo só aparece quando não há chamados em
+aberto, negociação em aberto, nem usuário do portal ativo vinculado; do
+contrário, só "Arquivar" fica disponível. Ver `web/src/lib/companyLinks.ts`
+e a migration `supabase/migrations/0001_archive_and_sla.sql`.
+
+<details>
+<summary>Contexto original</summary>
+
 ## 1. Excluir empresa com chamados ou usuários do portal vinculados
 
 **Contexto:** hoje, "Excluir empresa" (em `/empresas` e `/empresas/:id`) só
@@ -44,7 +57,17 @@ sentido (empresa cadastrada errada, teste, duplicata).
 `companies` e um filtro em todas as listagens — mudança de schema, por
 isso não implementei sem sua confirmação.
 
+</details>
+
 ---
+
+## 2. Excluir contato vinculado a chamados, negociações ou tarefas — resolvido (06/07/2026)
+
+Mesma solução do item 1 — arquivar em vez de excluir direto, exceto quando
+não há chamado nem negociação em aberto vinculados.
+
+<details>
+<summary>Contexto original</summary>
 
 ## 2. Excluir contato vinculado a chamados, negociações ou tarefas
 
@@ -63,7 +86,23 @@ tarefas/notas dele, e desliga chamados/negociações da pessoa que os abriu.
 
 **Riscos:** nenhum além do já descrito acima.
 
+</details>
+
 ---
+
+## 3. SLA / prazo de atendimento por prioridade — resolvido (06/07/2026)
+
+Implementado como **configurável por empresa** (não um valor único fixo
+para toda a operação) — cada cliente pode ter prazos diferentes por
+prioridade, definidos na aba "Prazos de atendimento (SLA)" na página da
+empresa. Prioridade sem prazo configurado simplesmente não mostra indicador
+de atraso (nenhum número foi inventado). Badge "No prazo"/"Atrasado"
+aparece no chamado e na lista de chamados quando há prazo definido para a
+empresa dele. Ver `web/src/lib/sla.ts`, `web/src/components/CompanySlaCard.tsx`
+e a tabela `company_sla_settings`.
+
+<details>
+<summary>Contexto original</summary>
 
 ## 3. SLA / prazo de atendimento por prioridade
 
@@ -91,6 +130,8 @@ tipo de suporte.
 **Riscos:** se os prazos forem muito rígidos e a equipe ainda não tiver
 capacidade de cumprir, o indicador vira ruído (tudo aparece atrasado).
 Vale validar os números com a equipe antes de ligar o indicador.
+
+</details>
 
 ---
 

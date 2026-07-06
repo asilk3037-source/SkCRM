@@ -12,6 +12,7 @@ import { can } from '../lib/permissions'
 import type {
   Contact,
   Company,
+  CompanySlaSetting,
   Ticket,
   TicketAttachment,
   TicketStatus,
@@ -31,6 +32,7 @@ import {
 } from '../lib/ticketMeta'
 import { MAX_COMMENT_LENGTH } from '../lib/validators'
 import { getTicketActionGroups, type TicketAction, type TicketActionKind } from '../lib/ticketTransitions'
+import { getTicketSlaStatus, formatSlaLabel, slaTone } from '../lib/sla'
 import { notify } from '../lib/notify'
 import { Button } from '../components/ui/Button'
 import { Card, CardHeader } from '../components/ui/Card'
@@ -254,6 +256,7 @@ export function TicketDetail() {
   const toast = useToast()
   const { data: contacts } = useSupabaseTable<Contact>('contacts', 'name')
   const { data: companies } = useSupabaseTable<Company>('companies', 'name')
+  const { data: slaSettings } = useSupabaseTable<CompanySlaSetting>('company_sla_settings')
   const [showForward, setShowForward] = useState(false)
   const [attachmentError, setAttachmentError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -311,6 +314,7 @@ export function TicketDetail() {
   const company = companies.find((c) => c.id === (ticket.company_id ?? contact?.company_id ?? null))
   const requester = contact?.name ?? company?.name ?? 'Solicitante não informado'
   const userEmail = user?.email ?? '—'
+  const sla = getTicketSlaStatus(ticket, company?.id ?? null, slaSettings)
 
   const external = comments.filter((c) => !c.internal)
   const internal = comments.filter((c) => c.internal)
@@ -399,6 +403,7 @@ export function TicketDetail() {
             <Badge tone={PRIORITY_TONE[ticket.priority]}>{PRIORITY_LABEL[ticket.priority]}</Badge>
             <Badge tone={STATUS_TONE[ticket.status]}>{STATUS_LABEL[ticket.status]}</Badge>
             <Badge className="!bg-white/10 !text-white">{CATEGORY_LABEL[ticket.category]}</Badge>
+            {sla && <Badge tone={slaTone(sla)}>{formatSlaLabel(sla)}</Badge>}
           </>
         }
         title={ticket.subject}

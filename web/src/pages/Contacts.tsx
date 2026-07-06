@@ -1,12 +1,13 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { useSupabaseTable } from '../hooks/useSupabaseTable'
 import { useOrg } from '../context/OrgContext'
 import { useConfirm } from '../components/ConfirmDialog'
 import { useToast } from '../components/ToastProvider'
 import { AttachmentsModal } from '../components/AttachmentsModal'
 import { ImportContactsModal } from '../components/ImportContactsModal'
-import type { Contact, Company } from '../types/database'
+import type { Contact, Company, Deal, Ticket } from '../types/database'
 import { formatPhoneBR, friendlyDbError, isValidPhoneBR } from '../lib/validators'
+import { contactHasActiveLinks } from '../lib/companyLinks'
 import { can } from '../lib/permissions'
 import { toCsv, downloadCsv } from '../lib/csv'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -14,6 +15,7 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { FieldGroup, Input, Select, Textarea } from '../components/ui/Field'
 import { Alert } from '../components/ui/Alert'
+import { Badge } from '../components/ui/Badge'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PageLoading } from '../components/ui/Spinner'
 import { LoadError } from '../components/ui/LoadError'
@@ -41,6 +43,8 @@ const emptyForm = { name: '', email: '', phone: '', job_title: '', company_id: '
 export function Contacts() {
   const { data: contacts, loading, error: loadError, refresh, create, update, remove } = useSupabaseTable<Contact>('contacts', 'name')
   const { data: companies } = useSupabaseTable<Company>('companies', 'name')
+  const { data: tickets } = useSupabaseTable<Ticket>('tickets')
+  const { data: deals } = useSupabaseTable<Deal>('deals')
   const { role } = useOrg()
   const canDelete = can(role, 'contacts', 'delete')
   const confirm = useConfirm()
@@ -50,12 +54,15 @@ export function Contacts() {
   const [showForm, setShowForm] = useState(false)
   const [attachFor, setAttachFor] = useState<Contact | null>(null)
   const [showImport, setShowImport] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(0)
 
   const companyName = (id: string | null) => companies.find((c) => c.id === id)?.name ?? '—'
+  const archivedCount = contacts.filter((c) => c.archived_at).length
+  const visibleContacts = contacts.filter((c) => (showArchived ? !!c.archived_at : !c.archived_at))
   const { sorted, sortKey, sortDir, toggleSort } = useSort<Contact, ContactSortKey>(
-    contacts,
+    visibleContacts,
     (contact, key) => {
       if (key === 'company') return companyName(contact.company_id)
       if (key === 'email') return contact.email ?? ''
@@ -67,6 +74,12 @@ export function Contacts() {
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const safePage = Math.min(page, pageCount - 1)
   const pageItems = paginate(sorted, safePage, PAGE_SIZE)
+
+  const activeLinksByContact = useMemo(
+    () => new Map(contacts.map((c) => [c.id, contactHasActiveLinks(c, tickets, deals)])),
+    [contacts, tickets, deals],
+  )
+  const hasActiveLinks = (contact: Contact) => activeLinksByContact.get(contact.id) ?? false
 
   function startEdit(contact: Contact) {
     setEditingId(contact.id)
@@ -114,8 +127,27 @@ export function Contacts() {
     }
   }
 
+  async function handleArchive(contact: Contact) {
+    if (
+      await confirm({
+        title: 'Arquivar contato',
+        description: `Arquivar "${contact.name}"? Ele deixa de aparecer na lista de contatos ativos, mas nada é apagado — dá para restaurar quando quiser.`,
+        confirmLabel: 'Arquivar',
+        tone: 'default',
+      })
+    ) {
+      await update(contact.id, { archived_at: new Date().toISOString() })
+      toast('Contato arquivado.')
+    }
+  }
+
+  async function handleRestore(contact: Contact) {
+    await update(contact.id, { archived_at: null })
+    toast('Contato restaurado.')
+  }
+
   async function handleRemove(contact: Contact) {
-    if (await confirm({ description: `Excluir o contato "${contact.name}"? Essa ação não pode ser desfeita.` })) {
+    if (await confirm({ description: `Excluir definitivamente o contato "${contact.name}"? Essa ação não pode ser desfeita.` })) {
       await remove(contact.id)
       toast('Contato excluído.')
     }
@@ -137,9 +169,12 @@ export function Contacts() {
       <PageHeader
         eyebrow="Base de relacionamento"
         title="Contatos"
-        description={`${contacts.length} contato(s) cadastrado(s)`}
+        description={showArchived ? `${visibleContacts.length} contato(s) arquivado(s)` : `${visibleContacts.length} contato(s) cadastrado(s)`}
         actions={
           <>
+            <Button variant="secondary" onClick={() => setShowArchived((v) => !v)}>
+              {showArchived ? 'Ver ativos' : `Arquivados${archivedCount ? ` (${archivedCount})` : ''}`}
+            </Button>
             <Button variant="secondary" onClick={handleExport} disabled={contacts.length === 0}>
               <IconDownload className="h-4 w-4" /> Exportar CSV
             </Button>
@@ -175,7 +210,7 @@ export function Contacts() {
             <FieldGroup label="Empresa">
               <Select value={form.company_id} onChange={(e) => setForm({ ...form, company_id: e.target.value })}>
                 <option value="">Sem empresa</option>
-                {companies.map((company) => (
+                {companies.filter((c) => !c.archived_at || c.id === form.company_id).map((company) => (
                   <option key={company.id} value={company.id}>
                     {company.name}
                   </option>
@@ -201,9 +236,13 @@ export function Contacts() {
         <PageLoading />
       ) : loadError ? (
         <LoadError message={loadError} onRetry={refresh} />
-      ) : contacts.length === 0 ? (
+      ) : visibleContacts.length === 0 ? (
         <Card>
-          <EmptyState icon={<IconUser className="h-5 w-5" />} title="Nenhum contato cadastrado ainda." hint="Adicione um contato manualmente ou importe uma lista via CSV." />
+          <EmptyState
+            icon={<IconUser className="h-5 w-5" />}
+            title={showArchived ? 'Nenhum contato arquivado.' : 'Nenhum contato cadastrado ainda.'}
+            hint={showArchived ? undefined : 'Adicione um contato manualmente ou importe uma lista via CSV.'}
+          />
         </Card>
       ) : (
         <>
@@ -226,6 +265,7 @@ export function Contacts() {
                         <div className="flex items-center gap-2.5">
                           <Avatar name={contact.name} size="sm" />
                           {contact.name}
+                          {contact.archived_at && <Badge tone="slate">Arquivado</Badge>}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-slate-600">{companyName(contact.company_id)}</td>
@@ -239,7 +279,16 @@ export function Contacts() {
                           <Button variant="ghost" size="xs" onClick={() => startEdit(contact)}>
                             Editar
                           </Button>
-                          {canDelete && (
+                          {canDelete && (contact.archived_at ? (
+                            <Button variant="secondary" size="xs" onClick={() => handleRestore(contact)}>
+                              Restaurar
+                            </Button>
+                          ) : (
+                            <Button variant="secondary" size="xs" onClick={() => handleArchive(contact)}>
+                              Arquivar
+                            </Button>
+                          ))}
+                          {canDelete && !hasActiveLinks(contact) && (
                             <Button variant="danger" size="xs" onClick={() => handleRemove(contact)}>
                               Excluir
                             </Button>
@@ -251,7 +300,7 @@ export function Contacts() {
                 </tbody>
               </table>
             </div>
-            <Pagination page={safePage} pageCount={pageCount} totalItems={contacts.length} onChange={setPage} />
+            <Pagination page={safePage} pageCount={pageCount} totalItems={visibleContacts.length} onChange={setPage} />
           </Card>
 
           <div className="space-y-3 sm:hidden">
@@ -262,6 +311,7 @@ export function Contacts() {
                   <span className="flex items-center gap-2">
                     <Avatar name={contact.name} size="sm" />
                     {contact.name}
+                    {contact.archived_at && <Badge tone="slate">Arquivado</Badge>}
                   </span>
                 }
                 actions={
@@ -272,7 +322,16 @@ export function Contacts() {
                     <Button variant="ghost" size="xs" onClick={() => startEdit(contact)}>
                       Editar
                     </Button>
-                    {canDelete && (
+                    {canDelete && (contact.archived_at ? (
+                      <Button variant="secondary" size="xs" onClick={() => handleRestore(contact)}>
+                        Restaurar
+                      </Button>
+                    ) : (
+                      <Button variant="secondary" size="xs" onClick={() => handleArchive(contact)}>
+                        Arquivar
+                      </Button>
+                    ))}
+                    {canDelete && !hasActiveLinks(contact) && (
                       <Button variant="danger" size="xs" onClick={() => handleRemove(contact)}>
                         Excluir
                       </Button>
@@ -287,7 +346,7 @@ export function Contacts() {
             ))}
             {pageCount > 1 && (
               <Card>
-                <Pagination page={safePage} pageCount={pageCount} totalItems={contacts.length} onChange={setPage} />
+                <Pagination page={safePage} pageCount={pageCount} totalItems={visibleContacts.length} onChange={setPage} />
               </Card>
             )}
           </div>

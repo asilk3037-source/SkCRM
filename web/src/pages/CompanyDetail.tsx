@@ -5,8 +5,10 @@ import { useOrg } from '../context/OrgContext'
 import { useConfirm } from '../components/ConfirmDialog'
 import { useToast } from '../components/ToastProvider'
 import { CompanyUsersCard } from '../components/CompanyUsersCard'
-import type { Company, Contact, Ticket } from '../types/database'
+import { CompanySlaCard } from '../components/CompanySlaCard'
+import type { Company, CompanyMember, Contact, Deal, Ticket } from '../types/database'
 import { STATUS_LABEL, STATUS_TONE, isTerminalStatus } from '../lib/ticketMeta'
+import { companyHasActiveLinks } from '../lib/companyLinks'
 import { formatPhoneBR, friendlyDbError, isValidPhoneBR, isValidUrl, normalizeUrl } from '../lib/validators'
 import { can } from '../lib/permissions'
 import { Button } from '../components/ui/Button'
@@ -55,12 +57,15 @@ export function CompanyDetail() {
   const { role } = useOrg()
   const canEdit = can(role, 'companies', 'edit')
   const canDelete = can(role, 'companies', 'delete')
+  const canManageSla = can(role, 'companyUsers', 'manage')
   const confirm = useConfirm()
   const toast = useToast()
 
   const { data: companies, loading, update, remove } = useSupabaseTable<Company>('companies', 'name')
   const { data: contacts } = useSupabaseTable<Contact>('contacts', 'name')
   const { data: tickets } = useSupabaseTable<Ticket>('tickets')
+  const { data: deals } = useSupabaseTable<Deal>('deals')
+  const { data: members } = useSupabaseTable<CompanyMember>('company_members')
 
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({ name: '', website: '', phone: '', address: '', notes: '' })
@@ -112,9 +117,30 @@ export function CompanyDetail() {
     }
   }
 
+  async function handleArchive() {
+    if (!company) return
+    if (
+      await confirm({
+        title: 'Arquivar empresa',
+        description: `Arquivar "${company.name}"? Ela deixa de aparecer na lista de empresas ativas, mas nada é apagado — dá para restaurar quando quiser.`,
+        confirmLabel: 'Arquivar',
+        tone: 'default',
+      })
+    ) {
+      await update(company.id, { archived_at: new Date().toISOString() })
+      toast('Empresa arquivada.')
+    }
+  }
+
+  async function handleRestore() {
+    if (!company) return
+    await update(company.id, { archived_at: null })
+    toast('Empresa restaurada.')
+  }
+
   async function handleDelete() {
     if (!company) return
-    if (await confirm({ description: `Excluir a empresa "${company.name}"? Essa ação não pode ser desfeita.` })) {
+    if (await confirm({ description: `Excluir definitivamente a empresa "${company.name}"? Essa ação não pode ser desfeita.` })) {
       await remove(company.id)
       toast('Empresa excluída.')
       navigate('/empresas')
@@ -136,7 +162,7 @@ export function CompanyDetail() {
           </span>
         }
         title={company.name}
-        description="Painel administrativo da empresa"
+        description={company.archived_at ? 'Painel administrativo da empresa — arquivada' : 'Painel administrativo da empresa'}
         actions={
           <>
             <Button variant="secondary" onClick={() => navigate(`/chamados?empresa=${company.id}`)}>
@@ -147,7 +173,16 @@ export function CompanyDetail() {
                 {editing ? 'Cancelar' : 'Editar dados'}
               </Button>
             )}
-            {canDelete && (
+            {canDelete && (company.archived_at ? (
+              <Button variant="secondary" onClick={handleRestore}>
+                Restaurar empresa
+              </Button>
+            ) : (
+              <Button variant="secondary" onClick={handleArchive}>
+                Arquivar empresa
+              </Button>
+            ))}
+            {canDelete && !companyHasActiveLinks(company, contacts, tickets, deals, members) && (
               <Button variant="danger" onClick={handleDelete}>
                 Excluir empresa
               </Button>
@@ -304,6 +339,8 @@ export function CompanyDetail() {
           })()
         )}
       </Card>
+
+      <CompanySlaCard companyId={company.id} canManage={canManageSla} />
 
       <CompanyUsersCard companyId={company.id} />
     </div>

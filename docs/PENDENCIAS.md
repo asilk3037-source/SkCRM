@@ -82,6 +82,17 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
 
 ## Concluído (histórico)
 
+- [x] **Arquivar empresa/contato em vez de excluir direto** *(06/07/2026)*
+  — resolvida a decisão pendente nº 1 e 2 de
+  [DECISOES_PENDENTES.md](./DECISOES_PENDENTES.md). Empresas e contatos com
+  chamado/negociação em aberto ou usuário do portal ativo agora só podem
+  ser arquivados (some da lista, nada é apagado, dá pra restaurar); a
+  exclusão definitiva continua disponível quando não há mais vínculo ativo.
+- [x] **SLA configurável por empresa** *(06/07/2026)* — resolvida a decisão
+  pendente nº 3. Cada empresa define seu próprio prazo por prioridade (em
+  horas) na própria página da empresa; chamados de empresa sem prazo
+  configurado simplesmente não mostram indicador. Badge "No prazo" /
+  "Atrasado" aparece no chamado e na lista de chamados.
 - [x] **Índices em todas as chaves estrangeiras do schema `skcrm`** *(05/07/2026)*
   — 41 colunas de FK estavam sem índice (achado do performance advisor do
   Supabase); criados via SQL direto no banco (não há pasta de migrations
