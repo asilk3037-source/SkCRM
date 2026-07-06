@@ -298,3 +298,11 @@ export function IconMoreHorizontal(props: IconProps) {
     </Svg>
   )
 }
+
+export function IconArrowUpDown(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="m7 15 5 5 5-5M7 9l5-5 5 5" />
+    </Svg>
+  )
+}

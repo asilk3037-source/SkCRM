@@ -20,7 +20,11 @@ import { LoadError } from '../components/ui/LoadError'
 import { DataCard, DataCardRow } from '../components/ui/DataCard'
 import { Avatar } from '../components/ui/Avatar'
 import { Pagination, paginate } from '../components/ui/Pagination'
+import { SortableTh } from '../components/ui/SortableTh'
+import { useSort } from '../lib/useSort'
 import { IconDownload, IconPaperclip, IconPlus, IconUser } from '../components/ui/icons'
+
+type ContactSortKey = 'name' | 'company' | 'email' | 'phone'
 
 const PAGE_SIZE = 20
 
@@ -50,9 +54,19 @@ export function Contacts() {
   const [page, setPage] = useState(0)
 
   const companyName = (id: string | null) => companies.find((c) => c.id === id)?.name ?? '—'
-  const pageCount = Math.max(1, Math.ceil(contacts.length / PAGE_SIZE))
+  const { sorted, sortKey, sortDir, toggleSort } = useSort<Contact, ContactSortKey>(
+    contacts,
+    (contact, key) => {
+      if (key === 'company') return companyName(contact.company_id)
+      if (key === 'email') return contact.email ?? ''
+      if (key === 'phone') return contact.phone ?? ''
+      return contact.name
+    },
+    'name',
+  )
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const safePage = Math.min(page, pageCount - 1)
-  const pageItems = paginate(contacts, safePage, PAGE_SIZE)
+  const pageItems = paginate(sorted, safePage, PAGE_SIZE)
 
   function startEdit(contact: Contact) {
     setEditingId(contact.id)
@@ -198,10 +212,10 @@ export function Contacts() {
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Nome</th>
-                    <th className="px-4 py-3 font-medium">Empresa</th>
-                    <th className="px-4 py-3 font-medium">E-mail</th>
-                    <th className="px-4 py-3 font-medium">Telefone</th>
+                    <SortableTh label="Nome" sortKey="name" active={sortKey === 'name'} dir={sortDir} onClick={toggleSort} />
+                    <SortableTh label="Empresa" sortKey="company" active={sortKey === 'company'} dir={sortDir} onClick={toggleSort} />
+                    <SortableTh label="E-mail" sortKey="email" active={sortKey === 'email'} dir={sortDir} onClick={toggleSort} />
+                    <SortableTh label="Telefone" sortKey="phone" active={sortKey === 'phone'} dir={sortDir} onClick={toggleSort} />
                     <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
