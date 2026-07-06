@@ -27,10 +27,10 @@ import {
   CATEGORY_LABEL,
   SECTOR_LABEL,
   formatBytes,
-  isTerminalStatus,
   timeAgo,
 } from '../lib/ticketMeta'
 import { MAX_COMMENT_LENGTH } from '../lib/validators'
+import { getTicketActionGroups, type TicketAction, type TicketActionKind } from '../lib/ticketTransitions'
 import { notify } from '../lib/notify'
 import { Button } from '../components/ui/Button'
 import { Card, CardHeader } from '../components/ui/Card'
@@ -60,6 +60,18 @@ function formatForward(detail: string | null) {
   const [sector, ...rest] = detail.split(' / ')
   const label = (SECTOR_LABEL as Record<string, string>)[sector] ?? sector
   return [label, ...rest].join(' / ')
+}
+
+const ACTION_ICON: Record<string, typeof IconCheck | undefined> = {
+  test_passed: IconCheck,
+  test_failed: IconCornerUpLeft,
+  return_unresolved: IconCornerUpLeft,
+  resume: IconCornerUpLeft,
+}
+
+function actionButtonProps(kind: TicketActionKind): { variant: 'primary' | 'secondary' | 'success' | 'ghost'; className?: string } {
+  if (kind === 'ghost-danger') return { variant: 'ghost', className: 'text-red-600 hover:bg-red-50' }
+  return { variant: kind }
 }
 
 /** Label-over-value block for the ticket/company info panels — reflows in a grid instead of scrolling like a 1-row table would. */
@@ -303,19 +315,8 @@ export function TicketDetail() {
   const external = comments.filter((c) => !c.internal)
   const internal = comments.filter((c) => c.internal)
 
-  const isAnalisar = ticket.status === 'analisar'
-  const isAberto = ticket.status === 'aberto'
-  const isEmAndamento = ticket.status === 'em_andamento'
-  const isMatrizDecisao = ticket.status === 'matriz_decisao'
-  const canResolveMatrix = can(role, 'tickets', 'manage')
-  const isTeste = ticket.status === 'teste' || ticket.status === 'teste_prioritario'
-  const isBacklog = ticket.status === 'backlog'
-  const isAguardandoValidacao = ticket.status === 'aguardando_validacao'
-  const isPendenteCliente = ticket.status === 'pendente_cliente'
-  const isPendenteFornecedor = ticket.status === 'pendente_fornecedor'
-  const isCancelado = ticket.status === 'cancelado'
   const isConcluido = ticket.status === 'concluido'
-  const isTerminal = isTerminalStatus(ticket.status)
+  const actionGroups = getTicketActionGroups(ticket.status, { canResolveMatrix: can(role, 'tickets', 'manage') })
 
   async function handleDelete() {
     if (!ticket) return
@@ -328,6 +329,17 @@ export function TicketDetail() {
     if (!ticket) return
     update(ticket.id, { status })
     toast(`Status alterado para "${STATUS_LABEL[status]}".`)
+  }
+
+  async function handleAction(action: TicketAction) {
+    if (!ticket) return
+    if (action.effect === 'notifyResolved') {
+      await update(ticket.id, { status: action.to })
+      toast('Chamado enviado para validação do cliente.')
+      notify('ticket_resolved', ticket.id)
+    } else {
+      changeStatus(action.to)
+    }
   }
 
   const memberOptions = members.map((m) => ({
@@ -489,114 +501,42 @@ export function TicketDetail() {
         </div>
         {/* Action bar — segue o fluxo Analisar → Em andamento → Aberto/Backlog → Em andamento → Teste → Aguardando validação */}
         <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 bg-slate-50/60 px-4 py-2.5">
-          {isAnalisar && (
-            <Button size="sm" onClick={() => changeStatus('em_andamento')}>
-              Iniciar análise
-            </Button>
-          )}
-          {isAberto && (
-            <Button size="sm" onClick={() => changeStatus('em_andamento')}>
-              Iniciar atendimento
-            </Button>
-          )}
-          {isEmAndamento && (
-            <>
-              <Button size="sm" variant="secondary" onClick={() => changeStatus('matriz_decisao')}>
-                Encaminhar para matriz de decisão
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => changeStatus('aberto')}>
-                Encaminhar para técnico
-              </Button>
-              <span className="mx-1 h-4 w-px bg-slate-300" />
-              <Button size="sm" onClick={() => changeStatus('teste')}>
-                Enviar para teste
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => changeStatus('teste_prioritario')}>
-                Enviar para teste prioritário
-              </Button>
-            </>
-          )}
-          {isMatrizDecisao && (
-            <>
-              {canResolveMatrix ? (
-                <>
-                  <Button size="sm" onClick={() => changeStatus('backlog')}>
-                    Enviar para Backlog (customização)
+          {actionGroups.primaryGroups.map((group, i) => (
+            <span key={i} className="contents">
+              {i > 0 && <span className="mx-1 h-4 w-px bg-slate-300" />}
+              {group.map((action) => {
+                const { variant, className } = actionButtonProps(action.kind)
+                const Icon = ACTION_ICON[action.key]
+                return (
+                  <Button key={action.key} size="sm" variant={variant} className={className} onClick={() => handleAction(action)}>
+                    {Icon && <Icon className="h-3.5 w-3.5" />} {action.label}
                   </Button>
-                  <Button size="sm" variant="secondary" onClick={() => changeStatus('aberto')}>
-                    Encaminhar para técnico
-                  </Button>
-                </>
-              ) : (
-                <span className="text-xs font-medium text-purple-700">Aguardando decisão do supervisor</span>
-              )}
-            </>
-          )}
-          {isTeste && (
-            <>
-              <Button
-                size="sm"
-                variant="success"
-                onClick={async () => {
-                  await update(ticket.id, { status: 'aguardando_validacao' })
-                  toast('Chamado enviado para validação do cliente.')
-                  notify('ticket_resolved', ticket.id)
-                }}
-              >
-                <IconCheck className="h-3.5 w-3.5" /> Teste concluído — aguardar validação
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => changeStatus('em_andamento')}>
-                <IconCornerUpLeft className="h-3.5 w-3.5" /> Reprovado no teste, voltar para atendimento
-              </Button>
-            </>
-          )}
-          {isBacklog && (
-            <Button size="sm" onClick={() => changeStatus('aberto')}>
-              Encaminhar para atendimento
-            </Button>
-          )}
-          {isAguardandoValidacao && (
-            <>
-              <span className="flex items-center gap-1.5 text-xs font-medium text-amber-700">
-                <IconCheck className="h-3.5 w-3.5" /> Aguardando o cliente confirmar a conclusão
-              </span>
-              <Button variant="secondary" size="sm" onClick={() => changeStatus('em_andamento')}>
-                <IconCornerUpLeft className="h-3.5 w-3.5" /> Retornar (não resolvido)
-              </Button>
-            </>
-          )}
-          {(isPendenteCliente || isPendenteFornecedor) && (
-            <Button variant="secondary" size="sm" onClick={() => changeStatus('em_andamento')}>
-              <IconCornerUpLeft className="h-3.5 w-3.5" /> Retomar atendimento
-            </Button>
-          )}
-          {isCancelado && (
-            <Button variant="secondary" size="sm" onClick={() => changeStatus('analisar')}>
-              Reabrir chamado
-            </Button>
-          )}
-          {isConcluido && (
-            <Button variant="secondary" size="sm" onClick={() => changeStatus('analisar')}>
-              Reabrir chamado
-            </Button>
+                )
+              })}
+            </span>
+          ))}
+
+          {actionGroups.message && (
+            <span
+              className={`flex items-center gap-1.5 text-xs font-medium ${
+                actionGroups.message.tone === 'purple' ? 'text-purple-700' : 'text-amber-700'
+              }`}
+            >
+              {actionGroups.message.icon && <IconCheck className="h-3.5 w-3.5" />} {actionGroups.message.text}
+            </span>
           )}
 
-          {!isTerminal && (
+          {actionGroups.waiting.length > 0 && (
             <>
               <span className="mx-1 h-4 w-px bg-slate-300" />
-              {!isPendenteCliente && (
-                <Button variant="ghost" size="sm" onClick={() => changeStatus('pendente_cliente')}>
-                  Aguardar cliente
-                </Button>
-              )}
-              {!isPendenteFornecedor && (
-                <Button variant="ghost" size="sm" onClick={() => changeStatus('pendente_fornecedor')}>
-                  Aguardar fornecedor
-                </Button>
-              )}
-              <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" onClick={() => changeStatus('cancelado')}>
-                Cancelar chamado
-              </Button>
+              {actionGroups.waiting.map((action) => {
+                const { variant, className } = actionButtonProps(action.kind)
+                return (
+                  <Button key={action.key} variant={variant} size="sm" className={className} onClick={() => handleAction(action)}>
+                    {action.label}
+                  </Button>
+                )
+              })}
             </>
           )}
 
