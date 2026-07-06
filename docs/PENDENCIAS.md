@@ -82,6 +82,11 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
 
 ## Concluído (histórico)
 
+- [x] **Índices em todas as chaves estrangeiras do schema `skcrm`** *(05/07/2026)*
+  — 41 colunas de FK estavam sem índice (achado do performance advisor do
+  Supabase); criados via SQL direto no banco (não há pasta de migrations
+  versionada no repositório ainda — ver oportunidade de modularização no
+  relatório de diagnóstico).
 - [x] Fase 1 — timeline do chamado, filtros avançados, anexos em
   contatos/negociações *(03/07/2026)*
 - [x] Fase 2 — organizações/equipe, convites, papéis admin×atendente,
