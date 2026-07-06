@@ -18,7 +18,11 @@ import { PageLoading } from '../components/ui/Spinner'
 import { LoadError } from '../components/ui/LoadError'
 import { DataCard, DataCardRow } from '../components/ui/DataCard'
 import { Pagination, paginate } from '../components/ui/Pagination'
+import { SortableTh } from '../components/ui/SortableTh'
+import { useSort } from '../lib/useSort'
 import { IconAlertTriangle, IconDownload, IconInbox, IconPlus, IconSearch } from '../components/ui/icons'
+
+type TicketSortKey = 'number' | 'subject' | 'requester' | 'category' | 'priority' | 'status' | 'created_at' | 'updated_at'
 
 const PAGE_SIZE = 20
 
@@ -156,9 +160,32 @@ export function Tickets() {
     )
   })
 
-  const pageCount = Math.max(1, Math.ceil(others.length / PAGE_SIZE))
+  const { sorted: sortedOthers, sortKey, sortDir, toggleSort } = useSort<Ticket, TicketSortKey>(
+    others,
+    (t, key) => {
+      switch (key) {
+        case 'requester':
+          return requesterOf(t)
+        case 'category':
+          return CATEGORY_LABEL[t.category]
+        case 'priority':
+          return PRIORITY_LABEL[t.priority]
+        case 'status':
+          return STATUS_LABEL[t.status]
+        case 'created_at':
+          return new Date(t.created_at).getTime()
+        case 'updated_at':
+          return new Date(t.updated_at).getTime()
+        default:
+          return t[key]
+      }
+    },
+    'updated_at',
+    'desc',
+  )
+  const pageCount = Math.max(1, Math.ceil(sortedOthers.length / PAGE_SIZE))
   const safePage = Math.min(page, pageCount - 1)
-  const pageItems = paginate(others, safePage, PAGE_SIZE)
+  const pageItems = paginate(sortedOthers, safePage, PAGE_SIZE)
 
   useEffect(() => {
     setPage(0)
@@ -420,14 +447,14 @@ export function Tickets() {
                   <table className="w-full text-left text-sm">
                     <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                       <tr>
-                        <th className="px-4 py-3 font-medium">Nº</th>
-                        <th className="px-4 py-3 font-medium">Assunto</th>
-                        <th className="px-4 py-3 font-medium">Solicitante</th>
-                        <th className="px-4 py-3 font-medium">Tipo</th>
-                        <th className="px-4 py-3 font-medium">Prioridade</th>
-                        <th className="px-4 py-3 font-medium">Status</th>
-                        <th className="px-4 py-3 font-medium">Abertura</th>
-                        <th className="px-4 py-3 font-medium">Atualizado</th>
+                        <SortableTh label="Nº" sortKey="number" active={sortKey === 'number'} dir={sortDir} onClick={toggleSort} />
+                        <SortableTh label="Assunto" sortKey="subject" active={sortKey === 'subject'} dir={sortDir} onClick={toggleSort} />
+                        <SortableTh label="Solicitante" sortKey="requester" active={sortKey === 'requester'} dir={sortDir} onClick={toggleSort} />
+                        <SortableTh label="Tipo" sortKey="category" active={sortKey === 'category'} dir={sortDir} onClick={toggleSort} />
+                        <SortableTh label="Prioridade" sortKey="priority" active={sortKey === 'priority'} dir={sortDir} onClick={toggleSort} />
+                        <SortableTh label="Status" sortKey="status" active={sortKey === 'status'} dir={sortDir} onClick={toggleSort} />
+                        <SortableTh label="Abertura" sortKey="created_at" active={sortKey === 'created_at'} dir={sortDir} onClick={toggleSort} />
+                        <SortableTh label="Atualizado" sortKey="updated_at" active={sortKey === 'updated_at'} dir={sortDir} onClick={toggleSort} />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">

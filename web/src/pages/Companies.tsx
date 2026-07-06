@@ -17,7 +17,11 @@ import { PageLoading } from '../components/ui/Spinner'
 import { LoadError } from '../components/ui/LoadError'
 import { DataCard, DataCardRow } from '../components/ui/DataCard'
 import { Pagination, paginate } from '../components/ui/Pagination'
+import { SortableTh } from '../components/ui/SortableTh'
+import { useSort } from '../lib/useSort'
 import { IconBuilding, IconPlus } from '../components/ui/icons'
+
+type CompanySortKey = 'name' | 'website' | 'phone'
 
 const emptyForm = { name: '', website: '', phone: '', address: '', notes: '' }
 const PAGE_SIZE = 20
@@ -33,9 +37,14 @@ export function Companies() {
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(0)
-  const pageCount = Math.max(1, Math.ceil(companies.length / PAGE_SIZE))
+  const { sorted, sortKey, sortDir, toggleSort } = useSort<Company, CompanySortKey>(
+    companies,
+    (company, key) => company[key] ?? '',
+    'name',
+  )
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const safePage = Math.min(page, pageCount - 1)
-  const pageItems = paginate(companies, safePage, PAGE_SIZE)
+  const pageItems = paginate(sorted, safePage, PAGE_SIZE)
 
   function startEdit(company: Company) {
     setEditingId(company.id)
@@ -155,9 +164,9 @@ export function Companies() {
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Nome</th>
-                    <th className="px-4 py-3 font-medium">Website</th>
-                    <th className="px-4 py-3 font-medium">Telefone</th>
+                    <SortableTh label="Nome" sortKey="name" active={sortKey === 'name'} dir={sortDir} onClick={toggleSort} />
+                    <SortableTh label="Website" sortKey="website" active={sortKey === 'website'} dir={sortDir} onClick={toggleSort} />
+                    <SortableTh label="Telefone" sortKey="phone" active={sortKey === 'phone'} dir={sortDir} onClick={toggleSort} />
                     <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
