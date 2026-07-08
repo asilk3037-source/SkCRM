@@ -22,6 +22,8 @@ import { DataCard, DataCardRow } from '../components/ui/DataCard'
 import { Avatar } from '../components/ui/Avatar'
 import { Hero } from '../components/ui/Hero'
 import { StatChip } from '../components/ui/StatChip'
+import { SortableLabel } from '../components/ui/SortableLabel'
+import { useSort } from '../lib/useSort'
 import {
   IconBuilding,
   IconInbox,
@@ -71,11 +73,16 @@ export function CompanyDetail() {
   const [form, setForm] = useState({ name: '', website: '', phone: '', address: '', notes: '' })
   const [error, setError] = useState<string | null>(null)
 
-  if (loading) return <PageLoading />
   const company = companies.find((c) => c.id === id)
+  const companyContacts = contacts.filter((c) => c.company_id === company?.id)
+  const { sorted: sortedContacts, sortKey: contactSortKey, sortDir: contactSortDir, toggleSort: toggleContactSort } = useSort<
+    Contact,
+    'name' | 'job_title' | 'email'
+  >(companyContacts, (c, key) => c[key] ?? '', 'name')
+
+  if (loading) return <PageLoading />
   if (!company) return <Navigate to="/empresas" replace />
 
-  const companyContacts = contacts.filter((c) => c.company_id === company.id)
   const contactIds = new Set(companyContacts.map((c) => c.id))
   const companyTickets = tickets.filter((t) => t.company_id === company.id || (t.contact_id && contactIds.has(t.contact_id)))
   const openTickets = companyTickets.filter((t) => !isTerminalStatus(t.status))
@@ -258,17 +265,24 @@ export function CompanyDetail() {
         {companyContacts.length === 0 ? (
           <EmptyState icon={<IconUser className="h-5 w-5" />} title="Nenhum contato vinculado a esta empresa ainda." compact />
         ) : (
-          <ul className="divide-y divide-slate-100">
-            {companyContacts.map((c) => (
-              <li key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
-                <Avatar name={c.name} size="sm" />
-                <span className="font-medium text-slate-900">{c.name}</span>
-                {c.job_title && <span className="text-xs text-slate-400">{c.job_title}</span>}
-                <span className="ml-auto text-slate-500">{c.email || '—'}</span>
-                <span className="text-slate-400">{c.phone || '—'}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <div className="flex items-center gap-4 border-b border-slate-100 px-4 py-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+              <SortableLabel label="Nome" sortKey="name" active={contactSortKey === 'name'} dir={contactSortDir} onClick={toggleContactSort} />
+              <SortableLabel label="Cargo" sortKey="job_title" active={contactSortKey === 'job_title'} dir={contactSortDir} onClick={toggleContactSort} />
+              <SortableLabel label="E-mail" sortKey="email" active={contactSortKey === 'email'} dir={contactSortDir} onClick={toggleContactSort} className="ml-auto" />
+            </div>
+            <ul className="divide-y divide-slate-100">
+              {sortedContacts.map((c) => (
+                <li key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
+                  <Avatar name={c.name} size="sm" />
+                  <span className="font-medium text-slate-900">{c.name}</span>
+                  {c.job_title && <span className="text-xs text-slate-400">{c.job_title}</span>}
+                  <span className="ml-auto text-slate-500">{c.email || '—'}</span>
+                  <span className="text-slate-400">{c.phone || '—'}</span>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </Card>
 

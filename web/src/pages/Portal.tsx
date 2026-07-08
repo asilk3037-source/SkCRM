@@ -14,8 +14,12 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { PageLoading } from '../components/ui/Spinner'
 import { DataCard, DataCardRow } from '../components/ui/DataCard'
 import { Pagination, paginate } from '../components/ui/Pagination'
+import { SortableTh } from '../components/ui/SortableTh'
+import { useSort } from '../lib/useSort'
 import { useToast } from '../components/ToastProvider'
 import { IconInbox, IconPlus } from '../components/ui/icons'
+
+type PortalTicketSortKey = 'number' | 'subject' | 'category' | 'status' | 'created_at'
 
 const emptyForm = { subject: '', description: '', category: 'suporte', priority: 'media' }
 const PAGE_SIZE = 20
@@ -70,9 +74,20 @@ export function Portal() {
   }
 
   const closed = tickets.filter((t) => isTerminalStatus(t.status))
-  const pageCount = Math.max(1, Math.ceil(tickets.length / PAGE_SIZE))
+  const { sorted, sortKey, sortDir, toggleSort } = useSort<Ticket, PortalTicketSortKey>(
+    tickets,
+    (t, key) => {
+      if (key === 'category') return CATEGORY_LABEL[t.category]
+      if (key === 'status') return STATUS_LABEL[t.status]
+      if (key === 'created_at') return new Date(t.created_at).getTime()
+      return t[key]
+    },
+    'created_at',
+    'desc',
+  )
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const safePage = Math.min(page, pageCount - 1)
-  const pageItems = paginate(tickets, safePage, PAGE_SIZE)
+  const pageItems = paginate(sorted, safePage, PAGE_SIZE)
 
   return (
     <PortalLayout>
@@ -192,11 +207,11 @@ export function Portal() {
                   <table className="w-full text-left text-sm">
                     <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                       <tr>
-                        <th className="px-4 py-3 font-medium">Nº</th>
-                        <th className="px-4 py-3 font-medium">Assunto</th>
-                        <th className="px-4 py-3 font-medium">Tipo</th>
-                        <th className="px-4 py-3 font-medium">Status</th>
-                        <th className="px-4 py-3 font-medium">Abertura</th>
+                        <SortableTh label="Nº" sortKey="number" active={sortKey === 'number'} dir={sortDir} onClick={toggleSort} />
+                        <SortableTh label="Assunto" sortKey="subject" active={sortKey === 'subject'} dir={sortDir} onClick={toggleSort} />
+                        <SortableTh label="Tipo" sortKey="category" active={sortKey === 'category'} dir={sortDir} onClick={toggleSort} />
+                        <SortableTh label="Status" sortKey="status" active={sortKey === 'status'} dir={sortDir} onClick={toggleSort} />
+                        <SortableTh label="Abertura" sortKey="created_at" active={sortKey === 'created_at'} dir={sortDir} onClick={toggleSort} />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -219,7 +234,7 @@ export function Portal() {
                       ))}
                     </tbody>
                   </table>
-                  <Pagination page={safePage} pageCount={pageCount} totalItems={tickets.length} onChange={setPage} />
+                  <Pagination page={safePage} pageCount={pageCount} totalItems={sorted.length} onChange={setPage} />
                 </div>
 
                 <div className="space-y-3 p-3 sm:hidden">
@@ -239,7 +254,7 @@ export function Portal() {
                   ))}
                   {pageCount > 1 && (
                     <Card>
-                      <Pagination page={safePage} pageCount={pageCount} totalItems={tickets.length} onChange={setPage} />
+                      <Pagination page={safePage} pageCount={pageCount} totalItems={sorted.length} onChange={setPage} />
                     </Card>
                   )}
                 </div>

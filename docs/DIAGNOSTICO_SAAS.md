@@ -88,8 +88,10 @@ coluna, **1 refactor de risco alto** (status do chamado) validado ao vivo.
 ## O que ainda falta, priorizado
 
 ### v1.1 — fechar o que resta de risco silencioso
-- [ ] Replicar ordenação de coluna em Detalhe da empresa (lista de contatos) e
-  Portal do cliente. (Equipe e TV Chamados ficam de fora — baixo valor/n.a.)
+- [x] Replicar ordenação de coluna em Detalhe da empresa (lista de contatos) e
+  Portal do cliente. *(08/07/2026)* — (Equipe e TV Chamados ficam de fora —
+  baixo valor/n.a.) Nova `SortableLabel` extraída de `SortableTh` pra
+  reaproveitar o controle de ordenação em listas que não são `<table>`.
 - [ ] Revisar as 16 funções `SECURITY DEFINER` uma a uma.
 - [x] Corrigir RLS initplan (`auth.uid()` por linha) e as policies
   permissivas duplicadas. *(06/07/2026)*
