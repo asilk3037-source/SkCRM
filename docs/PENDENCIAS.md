@@ -45,6 +45,10 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
   hoje desligado).
 - [ ] **Confirmar política de backup** do plano atual do Supabase antes de
   colocar dados de clientes reais.
+- [ ] **Auditar as 16 funções `SECURITY DEFINER`** do schema `skcrm` uma a
+  uma — confirmar que cada uma valida a organização de quem chama
+  internamente (são chamáveis via RPC por usuários anônimos/autenticados).
+  Só investigação, sem mudança de código prevista até revisar.
 
 ## Avisos técnicos (sem ação imediata, mas bom saber)
 
@@ -82,6 +86,16 @@ projeto avançar. Vou atualizando conforme o desenvolvimento anda.
 
 ## Concluído (histórico)
 
+- [x] **Ordenação de coluna em Detalhe da empresa e Portal do cliente**
+  *(08/07/2026)* — lista de contatos da empresa (Nome/Cargo/E-mail) e
+  tabela "Todos os chamados" do portal, mesmo padrão já usado em
+  Empresas/Contatos/Chamados.
+- [x] **Performance de RLS: `auth.uid()` por linha e policies duplicadas**
+  *(06/07/2026)* — 7 policies (`profiles`, `orgs`, `org_members`,
+  `tickets`) reescritas pra avaliar `auth.uid()` uma vez por consulta em
+  vez de por linha; policies de SELECT duplicadas em 4 tabelas (`contacts`,
+  `tickets`, `ticket_attachments`, `ticket_comments`) mescladas em uma só.
+  Sem mudança de permissão efetiva — confirmado via advisor do Supabase.
 - [x] **Arquivar empresa/contato em vez de excluir direto** *(06/07/2026)*
   — resolvida a decisão pendente nº 1 e 2 de
   [DECISOES_PENDENTES.md](./DECISOES_PENDENTES.md). Empresas e contatos com
